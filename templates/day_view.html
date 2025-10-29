@@ -1,0 +1,355 @@
+{% extends 'base.html' %}
+{% block title %}Day View - {{ date }}{% endblock %}
+
+{% block content %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<div class="container-fluid mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2><i class="bi bi-calendar-day me-2"></i>Day View: {{ date_obj.strftime('%A, %B %d, %Y') }}</h2>
+      <p class="text-muted">Click on a slot to edit, or click "Add Slot" to create a new booking</p>
+    </div>
+    <div>
+      <a href="{{ url_for('schedule_calendar') }}" class="btn btn-outline-secondary me-2">
+        <i class="bi bi-arrow-left me-1"></i>Back to Calendar
+      </a>
+      <button class="btn btn-primary" onclick="showAddSlotModal()">
+        <i class="bi bi-plus-circle me-1"></i>Add Slot
+      </button>
+    </div>
+  </div>
+
+  <!-- Day Navigation -->
+  <div class="mb-3">
+    <div class="btn-group" role="group">
+      <a href="{{ url_for('schedule_day_view', date=(date_obj - timedelta(days=1)).strftime('%Y-%m-%d')) }}" class="btn btn-outline-primary">
+        <i class="bi bi-chevron-left"></i> Previous Day
+      </a>
+      <button class="btn btn-outline-secondary" disabled>{{ date }}</button>
+      <a href="{{ url_for('schedule_day_view', date=(date_obj + timedelta(days=1)).strftime('%Y-%m-%d')) }}" class="btn btn-outline-primary">
+        Next Day <i class="bi bi-chevron-right"></i>
+      </a>
+    </div>
+  </div>
+
+  <!-- Hourly Schedule Grid -->
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-bordered table-hover">
+          <thead class="table-light">
+            <tr>
+              <th style="width: 100px;">Time</th>
+              <th>Scheduled Slots</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for hour in hours %}
+            <tr>
+              <td class="fw-bold text-center align-middle" style="background-color: #f8f9fa;">
+                {{ '%02d:00' % hour }}
+              </td>
+              <td>
+                {% if hour in schedule_map %}
+                  <div class="d-flex flex-wrap gap-2">
+                    {% for slot in schedule_map[hour] %}
+                    <div class="card border-primary" style="min-width: 250px; cursor: pointer;" onclick="editSlot('{{ slot.id }}')">
+                      <div class="card-body p-2">
+                        <div class="d-flex justify-content-between align-items-start">
+                          <div>
+                            <h6 class="card-title mb-1">
+                              <i class="bi bi-person-fill text-primary me-1"></i>{{ slot.student_name }}
+                            </h6>
+                            <p class="card-text small mb-1">
+                              <i class="bi bi-gear-fill text-secondary me-1"></i>{{ slot.machine_name }}
+                            </p>
+                            <p class="card-text small text-muted mb-0">
+                              <i class="bi bi-clock me-1"></i>{{ slot.start_time.strftime('%H:%M') }} - {{ slot.end_time.strftime('%H:%M') }}
+                            </p>
+                            {% if slot.group_name %}
+                            <p class="card-text small text-muted mb-0">
+                              <i class="bi bi-people me-1"></i>{{ slot.group_name }}
+                            </p>
+                            {% endif %}
+                          </div>
+                          <button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); deleteSlot('{{ slot.id }}')">
+                            <i class="bi bi-trash"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    {% endfor %}
+                  </div>
+                {% else %}
+                  <div class="text-muted text-center py-2">
+                    <i class="bi bi-calendar-x me-1"></i>No slots scheduled
+                  </div>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Slot Modal -->
+<div class="modal fade" id="addSlotModal" tabindex="-1" aria-labelledby="addSlotModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="addSlotModalLabel">
+          <i class="bi bi-plus-circle me-2"></i>Add New Slot
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form id="addSlotForm">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="add_student" class="form-label">Student</label>
+            <select class="form-select" id="add_student" name="student_name" required>
+              <option value="">Select Student</option>
+              {% for student in students %}
+              <option value="{{ student.student_name }}">{{ student.student_name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="add_machine" class="form-label">Machine</label>
+            <select class="form-select" id="add_machine" name="machine_name" required>
+              <option value="">Select Machine</option>
+              {% for machine in machines %}
+              <option value="{{ machine.machine_name }}">{{ machine.machine_name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="add_start_time" class="form-label">Start Time</label>
+            <input type="datetime-local" class="form-control" id="add_start_time" name="start_time" required>
+          </div>
+          <div class="mb-3">
+            <label for="add_end_time" class="form-label">End Time</label>
+            <input type="datetime-local" class="form-control" id="add_end_time" name="end_time" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check-circle me-1"></i>Add Slot
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Slot Modal -->
+<div class="modal fade" id="editSlotModal" tabindex="-1" aria-labelledby="editSlotModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-warning">
+        <h5 class="modal-title" id="editSlotModalLabel">
+          <i class="bi bi-pencil-square me-2"></i>Edit Slot
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form id="editSlotForm">
+        <input type="hidden" id="edit_slot_id" name="slot_id">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="edit_student" class="form-label">Student</label>
+            <select class="form-select" id="edit_student" name="student_name" required>
+              <option value="">Select Student</option>
+              {% for student in students %}
+              <option value="{{ student.student_name }}">{{ student.student_name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="edit_machine" class="form-label">Machine</label>
+            <select class="form-select" id="edit_machine" name="machine_name" required>
+              <option value="">Select Machine</option>
+              {% for machine in machines %}
+              <option value="{{ machine.machine_name }}">{{ machine.machine_name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="edit_start_time" class="form-label">Start Time</label>
+            <input type="datetime-local" class="form-control" id="edit_start_time" name="start_time" required>
+          </div>
+          <div class="mb-3">
+            <label for="edit_end_time" class="form-label">End Time</label>
+            <input type="datetime-local" class="form-control" id="edit_end_time" name="end_time" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-warning">
+            <i class="bi bi-save me-1"></i>Update Slot
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+const currentDate = '{{ date }}';
+
+function showAddSlotModal() {
+  const modal = new bootstrap.Modal(document.getElementById('addSlotModal'));
+  // Pre-fill with current date
+  const startInput = document.getElementById('add_start_time');
+  const endInput = document.getElementById('add_end_time');
+  startInput.value = currentDate + 'T08:00';
+  endInput.value = currentDate + 'T09:00';
+  modal.show();
+}
+
+document.getElementById('addSlotForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const formData = new FormData(this);
+  
+  fetch('/schedule/slot/add', {
+    method: 'POST',
+    body: formData
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.status === 'success') {
+      Swal.fire({
+        icon: 'success',
+        title: 'Success!',
+        text: data.message,
+        timer: 1500,
+        showConfirmButton: false
+      }).then(() => {
+        location.reload();
+      });
+    } else {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: data.message
+      });
+    }
+  })
+  .catch(err => {
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: 'Failed to add slot: ' + err.message
+    });
+  });
+});
+
+function editSlot(slotId) {
+  fetch(`/schedule/slot/edit/${slotId}`)
+    .then(res => res.json())
+    .then(data => {
+      document.getElementById('edit_slot_id').value = data.id;
+      document.getElementById('edit_student').value = data.student_name;
+      document.getElementById('edit_machine').value = data.machine_name;
+      document.getElementById('edit_start_time').value = data.start_time;
+      document.getElementById('edit_end_time').value = data.end_time;
+      
+      const modal = new bootstrap.Modal(document.getElementById('editSlotModal'));
+      modal.show();
+    })
+    .catch(err => {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Failed to load slot data: ' + err.message
+      });
+    });
+}
+
+document.getElementById('editSlotForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const slotId = document.getElementById('edit_slot_id').value;
+  const formData = new FormData(this);
+  
+  fetch(`/schedule/slot/edit/${slotId}`, {
+    method: 'POST',
+    body: formData
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.status === 'success') {
+      Swal.fire({
+        icon: 'success',
+        title: 'Updated!',
+        text: data.message,
+        timer: 1500,
+        showConfirmButton: false
+      }).then(() => {
+        location.reload();
+      });
+    } else {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: data.message
+      });
+    }
+  })
+  .catch(err => {
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: 'Failed to update slot: ' + err.message
+    });
+  });
+});
+
+function deleteSlot(slotId) {
+  Swal.fire({
+    title: 'Are you sure?',
+    text: "You won't be able to revert this!",
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#d33',
+    cancelButtonColor: '#3085d6',
+    confirmButtonText: 'Yes, delete it!'
+  }).then((result) => {
+    if (result.isConfirmed) {
+      fetch(`/schedule/slot/delete/${slotId}`, {
+        method: 'POST'
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === 'success') {
+          Swal.fire({
+            icon: 'success',
+            title: 'Deleted!',
+            text: data.message,
+            timer: 1500,
+            showConfirmButton: false
+          }).then(() => {
+            location.reload();
+          });
+        } else {
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: data.message
+          });
+        }
+      })
+      .catch(err => {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'Failed to delete slot: ' + err.message
+        });
+      });
+    }
+  });
+}
+</script>
+{% endblock %}

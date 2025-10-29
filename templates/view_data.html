@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>Uploaded Student Data</h1>
+{% if data_html %}
+  {{ data_html|safe }}
+{% else %}
+  <p>No data found.</p>
+{% endif %}
+{% endblock %}
+

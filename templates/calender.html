@@ -1,0 +1,208 @@
+{% extends 'base.html' %}
+{% block title %}Monthly Calendar{% endblock %}
+
+{% block content %}
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<div class="container mt-4">
+  <h2>Monthly Schedule</h2>
+  <div class="row mb-3">
+    <div class="col-md-4">
+      <label for="groupFilter">Filter by Group:</label>
+      <select id="groupFilter" class="form-select">
+        <option value="">All</option>
+        {% for g in groups %}
+          <option value="{{ g.name }}">{{ g.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-4">
+      <label for="machineFilter">Filter by Machine:</label>
+      <select id="machineFilter" class="form-select">
+        <option value="">All</option>
+        {% for m in machines %}
+          <option value="{{ m.machine_name }}">{{ m.machine_name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+  <div class="alert alert-secondary">
+    <strong>Legend:</strong> Lathe (Yellow), VM (Green), SG (Blue), EDM (Purple), CNC (Teal)
+  </div>
+
+  <div id="calendar"></div>
+</div>
+
+<!-- Inventory Modal -->
+<div class="modal fade" id="inventoryModal" tabindex="-1" aria-labelledby="inventoryModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <form id="inventoryForm" class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Assign Inventory</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" name="student_name" id="inv_student">
+        <input type="hidden" name="mini_task_id" id="inv_task">
+
+        <div class="mb-3">
+          <label>Inventory Item</label>
+          <select class="form-select" name="inventory_id" id="inv_item">
+            {% for item in inventory %}
+              <option value="{{ item.id }}">{{ item.item_name }} ({{ item.quantity }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="mb-3">
+          <label>Quantity</label>
+          <input type="number" name="quantity" class="form-control" required>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-success">Assign</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const colorMap = {
+    "Lathe": "#ffc107",
+    "VM": "#28a745",
+    "SG": "#007bff",
+    "EDM": "#6f42c1",
+    "CNC": "#17a2b8"
+  };
+
+  const events = JSON.parse('{{ schedule_events|tojson|safe }}');
+  events.forEach(ev => {
+    for (const key in colorMap) {
+      if (ev.extendedProps.machine.toUpperCase().includes(key)) {
+        ev.backgroundColor = colorMap[key];
+        ev.borderColor = colorMap[key];
+      }
+    }
+  });
+
+  const calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
+    initialView: 'dayGridMonth',
+    height: 'auto',
+    editable: true,
+    events: events,
+
+    dateClick: function(info) {
+      // Navigate to day view when clicking on a date
+      const dateStr = info.dateStr;
+      window.location.href = `/schedule/day/${dateStr}`;
+    },
+
+    eventClick: function(info) {
+      const ev = info.event;
+      const props = ev.extendedProps;
+
+      Swal.fire({
+        title: `Edit: ${ev.title}`,
+        html: `
+          <form id="editForm">
+            <label>Machine:</label>
+            <input class="form-control" name="machine_name" value="${props.machine}"><br>
+            <label>Start:</label>
+            <input class="form-control" name="start_time" type="datetime-local" value="${ev.start.toISOString().slice(0, 16)}"><br>
+            <label>End:</label>
+            <input class="form-control" name="end_time" type="datetime-local" value="${ev.end.toISOString().slice(0, 16)}"><br>
+          </form>
+        `,
+        confirmButtonText: 'Save',
+        showCancelButton: true,
+        footer: `
+          <a class='btn btn-sm btn-outline-primary' href="/student_module_form/${props.mini_task_id || 1}/${props.student_id || 1}">Record Attempt</a>
+          <button class="btn btn-sm btn-outline-success" onclick="showInventoryModal('${ev.title}', '${props.mini_task_id}')">Assign Inventory</button>
+        `,
+        preConfirm: () => {
+          const form = document.getElementById('editForm');
+          const data = new FormData(form);
+          return fetch(`/update_schedule/${ev.id}`, {
+            method: 'POST',
+            body: data
+          })
+          .then(res => {
+            if (!res.ok) throw new Error("Conflict or error");
+            return res.json();
+          })
+          .then(data => {
+            if (data.status !== 'success') throw new Error(data.message);
+            Swal.fire("Updated!", "", "success").then(() => location.reload());
+          })
+          .catch(err => {
+            Swal.showValidationMessage(`Error: ${err.message}`);
+          });
+        }
+      });
+    },
+
+    eventDrop: function(info) {
+      const ev = info.event;
+      fetch(`/update_schedule/${ev.id}`, {
+        method: 'POST',
+        body: new URLSearchParams({
+          student_name: ev.title,
+          machine_name: ev.extendedProps.machine,
+          start_time: ev.start.toISOString().slice(0, 16),
+          end_time: ev.end.toISOString().slice(0, 16)
+        })
+      }).then(res => {
+        if (!res.ok) return res.json().then(data => {
+          alert("⚠️ Conflict: " + (data.message || "Overlap detected"));
+          info.revert();
+        });
+      });
+    }
+  });
+
+  calendar.render();
+
+  document.getElementById("groupFilter").addEventListener("change", filterEvents);
+  document.getElementById("machineFilter").addEventListener("change", filterEvents);
+
+  function filterEvents() {
+    const group = document.getElementById("groupFilter").value;
+    const machine = document.getElementById("machineFilter").value;
+    const filtered = events.filter(ev => {
+      return (!group || ev.extendedProps.group === group) &&
+             (!machine || ev.extendedProps.machine === machine);
+    });
+    calendar.removeAllEvents();
+    calendar.addEventSource(filtered);
+  }
+
+  window.showInventoryModal = function(studentName, miniTaskId) {
+    const modal = new bootstrap.Modal(document.getElementById('inventoryModal'));
+    document.getElementById('inv_student').value = studentName;
+    document.getElementById('inv_task').value = miniTaskId;
+    modal.show();
+  };
+
+  document.getElementById('inventoryForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    fetch("/assign_inventory_from_calendar", {
+      method: "POST",
+      body: new FormData(this)
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.status === "success") {
+        bootstrap.Modal.getInstance(document.getElementById('inventoryModal')).hide();
+        Swal.fire("Assigned!", "", "success");
+      } else {
+        Swal.fire("Error", data.message || "Failed to assign inventory.", "error");
+      }
+    });
+  });
+});
+</script>
+{% endblock %}
+

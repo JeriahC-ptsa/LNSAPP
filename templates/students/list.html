@@ -1,0 +1,453 @@
+{% extends 'base.html' %}
+{% block title %}All Students{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="mb-0"><i class="bi bi-people-fill me-2"></i>Students</h1>
+    <div class="action-buttons d-flex gap-2">
+      <div class="dropdown">
+        <button class="btn btn-success dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside">
+          <i class="bi bi-funnel me-1"></i>Filter & Export
+        </button>
+        <div class="dropdown-menu dropdown-menu-end p-3" style="min-width: 400px; max-height: 600px; overflow-y: auto;">
+          <!-- FILTERS SECTION -->
+          <h6 class="dropdown-header px-0"><i class="bi bi-funnel me-2"></i>Filters:</h6>
+          
+          <!-- Group Filter -->
+          <div class="mb-3">
+            <label class="form-label small">Filter by Group</label>
+            <select class="form-select form-select-sm" id="filterByGroup" onchange="applyFilters()">
+              <option value="">All Groups</option>
+              {% for group in groups %}
+              <option value="{{ group.id }}">{{ group.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          {% if dynamic_fields %}
+          <!-- Dynamic Field Filters -->
+          {% for field in dynamic_fields[:3] %}
+          <div class="mb-3">
+            <label class="form-label small">Filter by {{ field.field_name.replace('_', ' ').title() }}</label>
+            <input type="text" class="form-control form-control-sm dynamic-filter" 
+                   data-field="{{ field.field_name }}" 
+                   placeholder="Search {{ field.field_name.replace('_', ' ') }}..."
+                   onkeyup="applyFilters()">
+          </div>
+          {% endfor %}
+          {% endif %}
+
+          <hr class="my-3">
+
+          <!-- EXPORT SECTION -->
+          <h6 class="dropdown-header px-0"><i class="bi bi-check2-square me-2"></i>Export Fields:</h6>
+          
+          <div class="mb-2">
+            <button class="btn btn-sm btn-outline-primary mb-2" onclick="selectAllExportFields()">
+              <i class="bi bi-check-all me-1"></i>Select All
+            </button>
+            <button class="btn btn-sm btn-outline-secondary mb-2 ms-2" onclick="deselectAllExportFields()">
+              <i class="bi bi-x me-1"></i>Deselect All
+            </button>
+          </div>
+
+          <div class="mb-2">
+            <div class="form-check">
+              <input class="form-check-input export-field" type="checkbox" value="student_number" id="export_number" checked>
+              <label class="form-check-label" for="export_number">Student Number</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input export-field" type="checkbox" value="student_name" id="export_name" checked>
+              <label class="form-check-label" for="export_name">Name</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input export-field" type="checkbox" value="group" id="export_group" checked>
+              <label class="form-check-label" for="export_group">Group</label>
+            </div>
+          </div>
+          {% if dynamic_fields %}
+          <hr>
+          <h6 class="dropdown-header px-0 small">Custom Fields:</h6>
+          <div class="mb-2">
+            {% for field in dynamic_fields %}
+            <div class="form-check">
+              <input class="form-check-input export-field" type="checkbox" value="{{ field.field_name }}" id="export_{{ field.field_name }}">
+              <label class="form-check-label small" for="export_{{ field.field_name }}">{{ field.field_name.replace('_', ' ').title() }}</label>
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          <hr class="my-3">
+
+          <!-- Export Format Selection -->
+          <div class="mb-3">
+            <label class="form-label small">Export Format</label>
+            <select class="form-select form-select-sm" id="exportFormat">
+              <option value="excel">Excel (.xlsx)</option>
+              <option value="csv">CSV (.csv)</option>
+            </select>
+          </div>
+
+          <div class="d-grid gap-2">
+            <button class="btn btn-success" onclick="exportStudents()">
+              <i class="bi bi-download me-1"></i>Export Data
+            </button>
+            <button class="btn btn-outline-secondary btn-sm" onclick="resetFilters()">
+              <i class="bi bi-arrow-clockwise me-1"></i>Reset Filters
+            </button>
+          </div>
+        </div>
+      </div>
+      <a href="{{ url_for('students_add') }}" class="btn btn-primary">
+        <i class="bi bi-plus-circle me-1"></i>Add Student
+      </a>
+      <a href="{{ url_for('students_upload_form') }}" class="btn btn-outline-primary">
+        <i class="bi bi-upload me-1"></i>Upload Excel
+      </a>
+    </div>
+  </div>
+
+  <div class="card shadow-sm mb-4">
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-9">
+          <input class="form-control" id="studentSearch" type="text" placeholder="🔍 Search students by name, group, or level...">
+        </div>
+        <div class="col-md-3">
+          <select id="studentSort" class="form-select">
+            <option value="">Sort by…</option>
+            <option value="studentnumber">Student Number</option>
+            <option value="name">Name</option>
+            <option value="group">Group</option>
+            <option value="module">Current Module</option>
+            {% for field in dynamic_fields %}
+            <option value="{{ field.field_name }}">{{ field.field_name.replace('_', ' ').title() }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-hover table-striped" id="studentTable">
+      <thead>
+        <tr>
+          <th>
+            <input type="checkbox" class="form-check-input" id="selectAll" onclick="toggleAllCheckboxes()">
+          </th>
+          <th>#</th>
+          <th>Student Number</th>
+          <th>Name</th>
+          <th>Group</th>
+          {% for field in dynamic_fields %}
+          <th>{{ field.field_name.replace('_', ' ').title() }}</th>
+          {% endfor %}
+          <th class="text-center">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in students %}
+        <tr
+          data-studentnumber="{{ s.student_number|lower if s.student_number else '' }}"
+          data-name="{{ s.student_name|lower }}"
+          data-group="{{ s.group.name|lower if s.group else '' }}"
+          data-module="{{ s.progress[-1].mini_task.title|lower if s.progress else '' }}"
+          {% for field in dynamic_fields %}
+          data-{{ field.field_name }}="{{ s.dynamic_fields.get(field.field_name, '')|lower }}"
+          {% endfor %}
+        >
+          <td>
+            <input type="checkbox" class="form-check-input student-checkbox" value="{{ s.id }}">
+          </td>
+          <td><strong>{{ s.id }}</strong></td>
+          <td>
+            {% if s.student_number %}
+              <span class="badge bg-primary">{{ s.student_number }}</span>
+            {% else %}
+              <span class="text-muted">-</span>
+            {% endif %}
+          </td>
+          <td>
+            <i class="bi bi-person-circle me-2 text-primary"></i>
+            <strong>{{ s.student_name }}</strong>
+          </td>
+          <td>
+            {% if s.group %}
+              <span class="badge bg-info">{{ s.group.name }}</span>
+            {% else %}
+              <span class="badge bg-secondary">No Group</span>
+            {% endif %}
+          </td>
+          {% for field in dynamic_fields %}
+          <td>{{ s.dynamic_fields.get(field.field_name, '-') }}</td>
+          {% endfor %}
+          <td class="text-center">
+            <div class="btn-group" role="group">
+              <button class="btn btn-sm btn-info" title="View Profile"
+                      data-bs-toggle="modal"
+                      data-bs-target="#profileModal"
+                      data-type="student"
+                      data-id="{{ s.id }}">
+                <i class="bi bi-eye"></i>
+              </button>
+              <a href="{{ url_for('students_edit', student_id=s.id) }}" class="btn btn-sm btn-warning" title="Edit">
+                <i class="bi bi-pencil"></i>
+              </a>
+              <a href="/select_module/{{ s.id }}" class="btn btn-sm btn-primary" title="Record Attempt">
+                <i class="bi bi-journal-plus"></i>
+              </a>
+              <form action="{{ url_for('students_delete', student_id=s.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Delete this student?');">
+                <button type="submit" class="btn btn-sm btn-danger" title="Delete">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Student Profile Modal -->
+<div class="modal fade" id="profileModal" tabindex="-1" aria-labelledby="profileModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Student Profile</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <h4 id="profileName"></h4>
+        <p><strong>Student Number:</strong> <span id="profileStudentNumber"></span></p>
+        <p><strong>Group:</strong> <span id="profileGroup"></span></p>
+        <p><strong>Current Module:</strong> <span id="profileCurrentModule"></span></p>
+
+        <div id="profileDynamicFields" class="mb-3"></div>
+
+        <h6>Mini-Tasks</h6>
+        <ul id="profileMiniTasks" class="list-group mb-3"></ul>
+
+        <h6>Inventory Usage</h6>
+        <ul id="profileInventoryUsage" class="list-group mb-3"></ul>
+
+        <h6>Schedule</h6>
+        <ul id="profileSchedule" class="list-group"></ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Inline Script -->
+<script>
+function toggleAllCheckboxes() {
+  const selectAll = document.getElementById('selectAll');
+  const checkboxes = document.querySelectorAll('.student-checkbox');
+  checkboxes.forEach(cb => cb.checked = selectAll.checked);
+}
+
+function exportStudents() {
+  const selectedFields = [];
+  document.querySelectorAll('.export-field:checked').forEach(cb => {
+    selectedFields.push(cb.value);
+  });
+  
+  const selectedStudents = [];
+  document.querySelectorAll('.student-checkbox:checked').forEach(cb => {
+    selectedStudents.push(cb.value);
+  });
+  
+  if (selectedFields.length === 0) {
+    alert('Please select at least one field to export');
+    return;
+  }
+  
+  // Get export format
+  const exportFormat = document.getElementById('exportFormat').value;
+  
+  // If no students selected, export all visible
+  const exportAll = selectedStudents.length === 0;
+  
+  const params = new URLSearchParams({
+    fields: selectedFields.join(','),
+    students: exportAll ? 'all' : selectedStudents.join(','),
+    search: document.getElementById('studentSearch').value,
+    format: exportFormat
+  });
+  
+  window.location.href = `/students/export?${params.toString()}`;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const searchInput = document.getElementById("studentSearch");
+  const sortSelect = document.getElementById("studentSort");
+
+  if (searchInput) {
+    searchInput.addEventListener("keyup", function () {
+      const filter = searchInput.value.toLowerCase();
+      const rows = document.querySelectorAll("#studentTable tbody tr");
+      rows.forEach(row => {
+        const text = row.innerText.toLowerCase();
+        row.style.display = text.includes(filter) ? "" : "none";
+      });
+    });
+  }
+
+  if (sortSelect) {
+    sortSelect.addEventListener("change", function () {
+      const sortKey = sortSelect.value;
+      const rows = Array.from(document.querySelectorAll("#studentTable tbody tr"));
+
+      rows.sort((a, b) => {
+        const aVal = a.dataset[sortKey] || '';
+        const bVal = b.dataset[sortKey] || '';
+
+        return aVal.localeCompare(bVal);
+      });
+
+      const tbody = document.querySelector("#studentTable tbody");
+      tbody.innerHTML = "";
+      rows.forEach(row => tbody.appendChild(row));
+    });
+  }
+
+  const profileModal = document.getElementById('profileModal');
+  if (profileModal) {
+    profileModal.addEventListener('show.bs.modal', function (event) {
+      const button = event.relatedTarget;
+      const dataType = button.getAttribute('data-type');
+      const dataId = button.getAttribute('data-id');
+
+      if (!dataId) return;
+
+      let url = `/profile/${dataType}/${dataId}`;
+
+      fetch(url)
+        .then(response => response.json())
+        .then(data => {
+          document.getElementById('profileName').textContent = data.full_name || '';
+          document.getElementById('profileStudentNumber').textContent = data.student_number || 'N/A';
+          document.getElementById('profileGroup').textContent = data.group || '';
+          document.getElementById('profileCurrentModule').textContent = data.current_module || '';
+
+          // Display dynamic fields
+          const dynamicFieldsDiv = document.getElementById('profileDynamicFields');
+          dynamicFieldsDiv.innerHTML = '';
+          if (data.dynamic_fields && Object.keys(data.dynamic_fields).length > 0) {
+            dynamicFieldsDiv.innerHTML = '<h6>Additional Information</h6>';
+            for (const [fieldName, fieldValue] of Object.entries(data.dynamic_fields)) {
+              if (fieldValue) {
+                const p = document.createElement('p');
+                p.innerHTML = `<strong>${fieldName.replace(/_/g, ' ')}:</strong> <span>${fieldValue}</span>`;
+                dynamicFieldsDiv.appendChild(p);
+              }
+            }
+          }
+
+          const usageUl = document.getElementById('profileInventoryUsage');
+          usageUl.innerHTML = '';
+          if (data.inventory_usage && data.inventory_usage.length > 0) {
+            data.inventory_usage.forEach(u => {
+              const li = document.createElement('li');
+              li.className = "list-group-item";
+              li.textContent = `${u.date_issued}: Used ${u.quantity_used} of ${u.item_name}`;
+              usageUl.appendChild(li);
+            });
+          } else {
+            const li = document.createElement('li');
+            li.className = "list-group-item text-muted";
+            li.textContent = 'No inventory usage recorded';
+            usageUl.appendChild(li);
+          }
+
+          const tasksUl = document.getElementById('profileMiniTasks');
+          tasksUl.innerHTML = '';
+          if (data.mini_tasks && data.mini_tasks.length > 0) {
+            data.mini_tasks.forEach(t => {
+              const li = document.createElement('li');
+              li.className = "list-group-item";
+              li.textContent = `${t.mini_task_title} (Attempt1=${t.attempt_1}, Attempt2=${t.attempt_2}, Attempt3=${t.attempt_3})`;
+              tasksUl.appendChild(li);
+            });
+          } else {
+            const li = document.createElement('li');
+            li.className = "list-group-item text-muted";
+            li.textContent = 'No mini-tasks assigned';
+            tasksUl.appendChild(li);
+          }
+
+          const schedUl = document.getElementById('profileSchedule');
+          schedUl.innerHTML = '';
+          if (data.schedule && data.schedule.length > 0) {
+            data.schedule.forEach(s => {
+              const li = document.createElement('li');
+              li.className = "list-group-item";
+              li.textContent = `${s.machine} | ${s.start_time} - ${s.end_time}`;
+              schedUl.appendChild(li);
+            });
+          } else {
+            const li = document.createElement('li');
+            li.className = "list-group-item text-muted";
+            li.textContent = 'No schedule found';
+            schedUl.appendChild(li);
+          }
+        });
+    });
+  }
+});
+
+// New Filter Functions
+function applyFilters() {
+  const groupFilter = document.getElementById('filterByGroup').value;
+  const rows = document.querySelectorAll("#studentTable tbody tr");
+  
+  rows.forEach(row => {
+    let show = true;
+    
+    // Group filter
+    if (groupFilter) {
+      const rowGroup = row.querySelector('td:nth-child(5)').textContent.trim();
+      if (!rowGroup.includes(groupFilter) && groupFilter !== 'No Group') {
+        show = false;
+      }
+    }
+    
+    // Dynamic field filters
+    document.querySelectorAll('.dynamic-filter').forEach(input => {
+      const filterValue = input.value.toLowerCase().trim();
+      if (filterValue) {
+        const fieldName = input.dataset.field;
+        const cellValue = (row.dataset[fieldName] || '').toLowerCase();
+        if (!cellValue.includes(filterValue)) {
+          show = false;
+        }
+      }
+    });
+    
+    row.style.display = show ? "" : "none";
+  });
+}
+
+function resetFilters() {
+  document.getElementById('filterByGroup').value = '';
+  document.querySelectorAll('.dynamic-filter').forEach(input => {
+    input.value = '';
+  });
+  document.getElementById('studentSearch').value = '';
+  applyFilters();
+}
+
+function selectAllExportFields() {
+  document.querySelectorAll('.export-field').forEach(cb => cb.checked = true);
+}
+
+function deselectAllExportFields() {
+  document.querySelectorAll('.export-field').forEach(cb => cb.checked = false);
+}
+</script>
+
+{% endblock %}

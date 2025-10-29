@@ -1,0 +1,346 @@
+{% extends 'base.html' %}
+{% block title %}Advanced Schedule Generation{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+  <h1 class="mb-4"><i class="bi bi-calendar-event me-2"></i>Advanced Schedule Generation</h1>
+
+  <form action="{{ url_for('generate_schedule_advanced') }}" method="POST">
+    <div class="row">
+      <!-- Session Type Selection -->
+      <div class="col-md-6">
+        <div class="card shadow-sm mb-4">
+          <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-gear-fill me-2"></i>Session Type</h5>
+          </div>
+          <div class="card-body">
+            <div class="mb-3">
+              <label class="form-label">Session Type <span class="text-danger">*</span></label>
+              <select class="form-select" name="session_type" id="sessionType" required onchange="updateSessionOptions()">
+                <option value="practical">Regular Practical</option>
+                <option value="practical_test">Practical Test</option>
+                <option value="written_test">Written Test</option>
+              </select>
+              <small class="text-muted">Select the type of session to schedule</small>
+            </div>
+
+            <!-- Test-specific options -->
+            <div id="testOptions" style="display: none;">
+              <div class="mb-3">
+                <label class="form-label">Students Per Session</label>
+                <input type="number" class="form-control" name="students_per_session" 
+                       id="studentsPerSession" value="1" min="1" max="50">
+                <small class="text-muted">For tests, how many students write simultaneously</small>
+              </div>
+
+              <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" name="same_machine_for_test" 
+                       id="sameMachineForTest">
+                <label class="form-check-label" for="sameMachineForTest">
+                  Keep same machine for all test sessions
+                </label>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Session Duration (minutes) <span class="text-danger">*</span></label>
+              <input type="number" class="form-control" name="slot_duration" value="60" required min="15" max="480">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filtering Options -->
+      <div class="col-md-6">
+        <div class="card shadow-sm mb-4">
+          <div class="card-header bg-success text-white">
+            <h5 class="mb-0"><i class="bi bi-funnel-fill me-2"></i>Filtering Options</h5>
+          </div>
+          <div class="card-body">
+            <p class="text-muted mb-3">
+              <i class="bi bi-info-circle me-1"></i>
+              Select any combination of filters below. Students matching <strong>any</strong> of the selected criteria will be scheduled.
+            </p>
+
+            <!-- Group Filter -->
+            <div class="mb-3">
+              <label class="form-label fw-bold">
+                <i class="bi bi-people-fill me-1"></i>Filter by Group(s)
+              </label>
+              <div class="border rounded p-2 bg-light" style="max-height: 150px; overflow-y: auto;">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="selectAllGroups" onchange="toggleAllGroups()">
+                  <label class="form-check-label fw-bold text-primary" for="selectAllGroups">
+                    Select All Groups
+                  </label>
+                </div>
+                <hr class="my-2">
+                {% for group in groups %}
+                <div class="form-check">
+                  <input class="form-check-input group-checkbox" type="checkbox" name="group_ids" 
+                         value="{{ group.id }}" id="group_{{ group.id }}">
+                  <label class="form-check-label" for="group_{{ group.id }}">
+                    {{ group.name }}
+                  </label>
+                </div>
+                {% endfor %}
+              </div>
+              <small class="text-muted">Optional - Leave unchecked to ignore group filtering</small>
+            </div>
+
+            <!-- Module Filter -->
+            <div class="mb-3">
+              <label class="form-label fw-bold">
+                <i class="bi bi-book-fill me-1"></i>Filter by Module(s)
+              </label>
+              <div class="border rounded p-2 bg-light" style="max-height: 150px; overflow-y: auto;">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="selectAllModules" onchange="toggleAllModules()">
+                  <label class="form-check-label fw-bold text-primary" for="selectAllModules">
+                    Select All Modules
+                  </label>
+                </div>
+                <hr class="my-2">
+                {% for module in modules %}
+                <div class="form-check">
+                  <input class="form-check-input module-checkbox" type="checkbox" name="module_ids" 
+                         value="{{ module.id }}" id="module_{{ module.id }}">
+                  <label class="form-check-label" for="module_{{ module.id }}">
+                    {{ module.name }}
+                  </label>
+                </div>
+                {% endfor %}
+              </div>
+              <small class="text-muted">Optional - Leave unchecked to ignore module filtering</small>
+            </div>
+
+            <!-- Machine Filter -->
+            <div class="mb-3">
+              <label class="form-label fw-bold">
+                <i class="bi bi-gear-fill me-1"></i>Restrict to Machine(s)
+              </label>
+              <div class="border rounded p-2 bg-light" style="max-height: 150px; overflow-y: auto;">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="selectAllMachines" onchange="toggleAllMachines()">
+                  <label class="form-check-label fw-bold text-primary" for="selectAllMachines">
+                    Use All Machines
+                  </label>
+                </div>
+                <hr class="my-2">
+                {% for machine in machines %}
+                <div class="form-check">
+                  <input class="form-check-input machine-checkbox" type="checkbox" name="machine_ids" 
+                         value="{{ machine.id }}" id="machine_{{ machine.id }}">
+                  <label class="form-check-label" for="machine_{{ machine.id }}">
+                    {{ machine.machine_name }}
+                  </label>
+                </div>
+                {% endfor %}
+              </div>
+              <small class="text-muted">Optional - Leave unchecked to use all available machines</small>
+            </div>
+
+            <!-- Custom Student Selection -->
+            <div class="mb-3">
+              <label class="form-label fw-bold">
+                <i class="bi bi-person-check-fill me-1"></i>Or Select Specific Students
+              </label>
+              <select class="form-select" name="student_ids" multiple size="6">
+                {% for student in students %}
+                <option value="{{ student.id }}">
+                  {{ student.student_name }} ({{ student.group.name if student.group else 'No Group' }})
+                </option>
+                {% endfor %}
+              </select>
+              <small class="text-muted">Hold Ctrl/Cmd to select specific students (overrides filters above)</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <!-- Date & Time Settings -->
+      <div class="col-md-6">
+        <div class="card shadow-sm mb-4">
+          <div class="card-header bg-warning">
+            <h5 class="mb-0"><i class="bi bi-clock-fill me-2"></i>Date & Time Settings</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Start Date <span class="text-danger">*</span></label>
+                <input type="date" class="form-control" name="start_date" required>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">End Date <span class="text-danger">*</span></label>
+                <input type="date" class="form-control" name="end_date" required>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Start Time <span class="text-danger">*</span></label>
+                <input type="time" class="form-control" name="start_time" value="08:00" required>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">End Time <span class="text-danger">*</span></label>
+                <input type="time" class="form-control" name="end_time" value="16:00" required>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Lunch Start Time</label>
+                <input type="time" class="form-control" name="lunch_start" value="12:00">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Lunch Duration (min)</label>
+                <input type="number" class="form-control" name="lunch_duration" value="60" min="0">
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Break Between Sessions (min)</label>
+              <input type="number" class="form-control" name="allowance_time" value="0" min="0">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Advanced Options -->
+      <div class="col-md-6">
+        <div class="card shadow-sm mb-4">
+          <div class="card-header bg-info text-white">
+            <h5 class="mb-0"><i class="bi bi-sliders me-2"></i>Advanced Options</h5>
+          </div>
+          <div class="card-body">
+            <div class="mb-3">
+              <label class="form-label">Scheduling Priority</label>
+              <select class="form-select" name="priority_rule">
+                <option value="FIFO">First In, First Out (FIFO)</option>
+                <option value="SPT">Shortest Processing Time (SPT)</option>
+                <option value="LPT">Longest Processing Time (LPT)</option>
+                <option value="GROUP">Group by Group</option>
+                <option value="MODULE">Group by Module</option>
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Days of Week</label>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="days[]" value="0" id="monday" checked>
+                <label class="form-check-label" for="monday">Monday</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="days[]" value="1" id="tuesday" checked>
+                <label class="form-check-label" for="tuesday">Tuesday</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="days[]" value="2" id="wednesday" checked>
+                <label class="form-check-label" for="wednesday">Wednesday</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="days[]" value="3" id="thursday" checked>
+                <label class="form-check-label" for="thursday">Thursday</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="days[]" value="4" id="friday" checked>
+                <label class="form-check-label" for="friday">Friday</label>
+              </div>
+            </div>
+
+            <div class="form-check mb-3">
+              <input class="form-check-input" type="checkbox" name="clear_existing" id="clearExisting" checked>
+              <label class="form-check-label" for="clearExisting">
+                Clear existing schedule before generating
+              </label>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Notes (Optional)</label>
+              <textarea class="form-control" name="notes" rows="2" 
+                        placeholder="Add any notes about this schedule..."></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="card shadow-sm mb-4">
+      <div class="card-body text-center">
+        <button type="submit" class="btn btn-success btn-lg me-2">
+          <i class="bi bi-calendar-check"></i> Generate Schedule
+        </button>
+        <a href="{{ url_for('view_schedule') }}" class="btn btn-secondary btn-lg">
+          <i class="bi bi-eye"></i> View Current Schedule
+        </a>
+      </div>
+    </div>
+  </form>
+</div>
+
+<script>
+function updateSessionOptions() {
+  const sessionType = document.getElementById('sessionType').value;
+  const testOptions = document.getElementById('testOptions');
+  
+  if (sessionType === 'practical_test' || sessionType === 'written_test') {
+    testOptions.style.display = 'block';
+  } else {
+    testOptions.style.display = 'none';
+    document.getElementById('studentsPerSession').value = '1';
+  }
+}
+
+function toggleAllGroups() {
+  const selectAll = document.getElementById('selectAllGroups').checked;
+  document.querySelectorAll('.group-checkbox').forEach(checkbox => {
+    checkbox.checked = selectAll;
+  });
+}
+
+function toggleAllModules() {
+  const selectAll = document.getElementById('selectAllModules').checked;
+  document.querySelectorAll('.module-checkbox').forEach(checkbox => {
+    checkbox.checked = selectAll;
+  });
+}
+
+function toggleAllMachines() {
+  const selectAll = document.getElementById('selectAllMachines').checked;
+  document.querySelectorAll('.machine-checkbox').forEach(checkbox => {
+    checkbox.checked = selectAll;
+  });
+}
+
+// Set default date to today and 7 days from now
+window.addEventListener('DOMContentLoaded', (event) => {
+  const today = new Date();
+  const nextWeek = new Date(today);
+  nextWeek.setDate(nextWeek.getDate() + 7);
+  
+  const formatDate = (date) => {
+    return date.toISOString().split('T')[0];
+  };
+  
+  document.querySelector('input[name="start_date"]').value = formatDate(today);
+  document.querySelector('input[name="end_date"]').value = formatDate(nextWeek);
+});
+</script>
+
+<style>
+.card {
+  transition: box-shadow 0.3s;
+}
+
+.card:hover {
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+
+.form-select[multiple] {
+  min-height: 150px;
+}
+</style>
+{% endblock %}

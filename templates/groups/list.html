@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% block title %}Groups{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="mb-0"><i class="bi bi-people-fill me-2"></i>Groups</h1>
+    <a href="{{ url_for('groups_add') }}" class="btn btn-primary">
+      <i class="bi bi-plus-circle me-1"></i>Add Group
+    </a>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-hover table-striped">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Group Name</th>
+          <th>Date Added</th>
+          <th>Site</th>
+          <th>Province</th>
+          <th>Number of Students</th>
+          <th class="text-center">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for group in groups %}
+        <tr>
+          <td><strong>{{ group.id }}</strong></td>
+          <td>
+            <i class="bi bi-collection me-2 text-primary"></i>
+            <strong>{{ group.name }}</strong>
+          </td>
+          <td>
+            {% if group.date_added %}
+              <small>{{ group.date_added.strftime('%Y-%m-%d') }}</small>
+            {% else %}
+              <small class="text-muted">-</small>
+            {% endif %}
+          </td>
+          <td>
+            {% if group.site %}
+              <span class="badge bg-secondary">{{ group.site.code }}</span> {{ group.site.name }}
+            {% else %}
+              <span class="text-muted">No site</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if group.province %}
+              {{ group.province }}
+            {% else %}
+              <span class="text-muted">-</span>
+            {% endif %}
+          </td>
+          <td>
+            <span class="badge bg-info">{{ group.students|length }} students</span>
+          </td>
+          <td class="text-center">
+            <div class="btn-group" role="group">
+              <a href="{{ url_for('groups_edit', group_id=group.id) }}" class="btn btn-sm btn-warning" title="Edit">
+                <i class="bi bi-pencil"></i>
+              </a>
+              <form action="{{ url_for('groups_delete', group_id=group.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Delete this group? Students will not be deleted.');">
+                <button type="submit" class="btn btn-sm btn-danger" title="Delete">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

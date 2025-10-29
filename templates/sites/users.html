@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+{% block title %}Manage Users - {{ site.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1><i class="bi bi-people me-2"></i>Manage Users for {{ site.name }}</h1>
+      <p class="text-muted">
+        <i class="bi bi-building me-1"></i>{{ site.code }} | {{ site.location or 'No location' }}
+      </p>
+    </div>
+    <a href="{{ url_for('list_sites') }}" class="btn btn-secondary">
+      <i class="bi bi-arrow-left me-2"></i>Back to Sites
+    </a>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead class="table-light">
+            <tr>
+              <th>Username</th>
+              <th>Email</th>
+              <th>Roles</th>
+              <th>Access Status</th>
+              <th>Manager</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for data in site_user_data %}
+            <tr>
+              <td>
+                <strong>{{ data.user.username }}</strong>
+                {% if not data.user.active %}
+                <span class="badge bg-secondary ms-2">Inactive</span>
+                {% endif %}
+              </td>
+              <td>{{ data.user.email }}</td>
+              <td>
+                {% for role in data.user.roles %}
+                <span class="badge bg-info me-1">{{ role.name }}</span>
+                {% endfor %}
+                {% if not data.user.roles %}
+                <span class="text-muted">No roles</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if data.has_access %}
+                <span class="badge bg-success">
+                  <i class="bi bi-check-circle me-1"></i>Has Access
+                </span>
+                {% else %}
+                <span class="badge bg-secondary">
+                  <i class="bi bi-x-circle me-1"></i>No Access
+                </span>
+                {% endif %}
+              </td>
+              <td>
+                {% if data.has_access and data.is_manager %}
+                <span class="badge bg-warning text-dark">
+                  <i class="bi bi-star-fill me-1"></i>Manager
+                </span>
+                {% else %}
+                <span class="text-muted">-</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if data.has_access %}
+                <!-- User has access - show remove button -->
+                <form method="POST" action="{{ url_for('remove_user_from_site', site_id=site.id, user_id=data.user.id) }}" 
+                      style="display: inline;">
+                  <button type="submit" class="btn btn-sm btn-outline-danger" 
+                          onclick="return confirm('Remove {{ data.user.username }} from this site?')">
+                    <i class="bi bi-x-circle me-1"></i>Remove
+                  </button>
+                </form>
+                
+                <!-- Toggle manager status -->
+                <button type="button" class="btn btn-sm btn-outline-warning" 
+                        onclick="toggleManager({{ site.id }}, {{ data.user.id }}, {{ 'false' if data.is_manager else 'true' }})">
+                  <i class="bi bi-star me-1"></i>
+                  {{ 'Remove Manager' if data.is_manager else 'Make Manager' }}
+                </button>
+                {% else %}
+                <!-- User doesn't have access - show assign button -->
+                <form method="POST" action="{{ url_for('assign_user_to_site', site_id=site.id, user_id=data.user.id) }}" 
+                      style="display: inline;">
+                  <button type="submit" class="btn btn-sm btn-outline-success">
+                    <i class="bi bi-plus-circle me-1"></i>Grant Access
+                  </button>
+                </form>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+            
+            {% if not site_user_data %}
+            <tr>
+              <td colspan="6" class="text-center text-muted py-4">
+                <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                No users found in the system.
+              </td>
+            </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="alert alert-info mt-4">
+    <h5><i class="bi bi-info-circle me-2"></i>About User Access</h5>
+    <ul class="mb-0">
+      <li><strong>Has Access:</strong> User can switch to and work with this site</li>
+      <li><strong>Manager:</strong> User has elevated privileges at this site (future feature)</li>
+      <li><strong>Super Admin:</strong> Has access to all sites automatically</li>
+    </ul>
+  </div>
+</div>
+
+<!-- Hidden form for toggling manager status -->
+<form id="managerForm" method="POST" style="display: none;">
+  <input type="checkbox" name="is_manager" id="managerCheckbox">
+</form>
+
+<script>
+function toggleManager(siteId, userId, makeManager) {
+  const form = document.getElementById('managerForm');
+  const checkbox = document.getElementById('managerCheckbox');
+  
+  form.action = `/sites/${siteId}/assign_user/${userId}`;
+  checkbox.checked = makeManager === 'true';
+  
+  if (confirm(makeManager === 'true' ? 'Make this user a manager at this site?' : 'Remove manager status from this user?')) {
+    form.submit();
+  }
+}
+</script>
+{% endblock %}

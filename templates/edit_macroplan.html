@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% block title %}Edit Macro Plan{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <div class="card shadow-sm">
+        <div class="card-header">
+          <h4 class="mb-0"><i class="bi bi-pencil-square me-2"></i>Edit Macro Plan</h4>
+        </div>
+        <div class="card-body">
+          <form method="POST" action="{{ url_for('macroplan_edit', plan_id=plan.id) }}">
+            <div class="mb-3">
+              <label for="machine_name" class="form-label">Machine <span class="text-danger">*</span></label>
+              <select class="form-select" id="machine_name" name="machine_name" required>
+                <option value="">-- Select Machine --</option>
+                {% for machine in machines %}
+                  <option value="{{ machine.machine_name }}" {% if plan.machine_name == machine.machine_name %}selected{% endif %}>
+                    {{ machine.machine_name }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label for="date" class="form-label">Date <span class="text-danger">*</span></label>
+              <input type="date" class="form-control" id="date" name="date" value="{{ plan.date.strftime('%Y-%m-%d') }}" required>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="planned_maintenance" class="form-label">Planned Maintenance (hrs)</label>
+                <input type="number" class="form-control" id="planned_maintenance" name="planned_maintenance" value="{{ plan.planned_maintenance }}" min="0" step="0.01">
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label for="breakdown" class="form-label">Breakdown (hrs)</label>
+                <input type="number" class="form-control" id="breakdown" name="breakdown" value="{{ plan.breakdown }}" min="0" step="0.01">
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="installed_capacity" class="form-label">Installed Capacity (hrs)</label>
+                <input type="number" class="form-control" id="installed_capacity" name="installed_capacity" value="{{ plan.installed_capacity }}" min="0" step="0.01">
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label for="usage" class="form-label">Usage (hrs)</label>
+                <input type="number" class="form-control" id="usage" name="usage" value="{{ plan.usage }}" min="0" step="0.01">
+              </div>
+            </div>
+
+            <div class="d-flex gap-2">
+              <button type="submit" class="btn btn-primary">
+                <i class="bi bi-save me-1"></i>Update Plan
+              </button>
+              <a href="{{ url_for('macroplan_page') }}" class="btn btn-secondary">
+                <i class="bi bi-x-circle me-1"></i>Cancel
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

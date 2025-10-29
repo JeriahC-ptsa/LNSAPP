@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+{% block title %}Upload Machines{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row mb-4">
+    <div class="col-12">
+      <h2><i class="bi bi-cloud-upload me-2"></i>Bulk Upload Machines</h2>
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="{{ url_for('machines_list') }}">Machines</a></li>
+          <li class="breadcrumb-item active">Upload</li>
+        </ol>
+      </nav>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-lg-8">
+      <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0"><i class="bi bi-file-earmark-spreadsheet me-2"></i>Upload File</h5>
+        </div>
+        <div class="card-body">
+          <form method="POST" action="{{ url_for('upload_machines_preview') }}" enctype="multipart/form-data">
+            <div class="mb-3">
+              <label for="fileInput" class="form-label"><strong>Choose Excel File</strong> <span class="text-danger">*</span></label>
+              <input type="file" name="file" id="fileInput" class="form-control" accept=".xlsx,.xls" required>
+              <small class="text-muted">Supported formats: .xlsx, .xls</small>
+            </div>
+            
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+              <a href="{{ url_for('machines_list') }}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left me-1"></i>Cancel
+              </a>
+              <button type="submit" class="btn btn-primary">
+                <i class="bi bi-cloud-upload me-1"></i>Upload & Preview
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="card shadow-sm border-info">
+        <div class="card-header bg-info text-white">
+          <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Instructions</h5>
+        </div>
+        <div class="card-body">
+          <h6><strong>Excel Format:</strong></h6>
+          <p class="mb-2">Your Excel file should contain these columns:</p>
+          <ul class="small">
+            <li><strong>Machine Name</strong> (required)</li>
+            <li><strong>Level</strong> (optional)</li>
+          </ul>
+          
+          <hr>
+          
+          <h6><strong>Example:</strong></h6>
+          <div class="table-responsive">
+            <table class="table table-bordered table-sm">
+              <thead class="table-light">
+                <tr>
+                  <th>Machine Name</th>
+                  <th>Level</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>CNC Machine 1</td>
+                  <td>Advanced</td>
+                </tr>
+                <tr>
+                  <td>Lathe Machine</td>
+                  <td>Intermediate</td>
+                </tr>
+                <tr>
+                  <td>Milling Machine</td>
+                  <td>Beginner</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          
+          <div class="alert alert-warning small mb-0" role="alert">
+            <strong>Note:</strong> Header row detection is automatic. You'll be able to select the correct header row if needed.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>Consumables Dashboard</h1>
+
+<h2>Record Usage</h2>
+<form method="POST" action="{{ url_for('add_consumable_usage_db') }}">
+  <div class="mb-3">
+    <label>Student</label>
+    <select class="form-select" name="student_id" title="Select a student">
+      {% for st in student_list %}
+      <option value="{{ st.id }}">{{ st.student_name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="mb-3">
+    <label>Inventory Item</label>
+    <select class="form-select" name="inventory_id" title="Select an inventory item">
+      {% for i in items %}
+      <option value="{{ i.id }}">{{ i.item_name }} (Stock: {{ i.quantity }})</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="mb-3">
+    <label>Quantity</label>
+    <input class="form-control" name="quantity" title="Enter quantity" placeholder="Enter quantity" required />
+  </div>
+  <button type="submit" class="btn btn-primary">Use Consumable</button>
+</form>
+
+<hr/>
+
+<h2>Usage Records</h2>
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Item</th>
+      <th>Student</th>
+      <th>Quantity</th>
+      <th>Unit Cost</th>
+      <th>Date Issued</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for usage in usage_list %}
+    <tr>
+      <td>{{ usage.id }}</td>
+      <td>{{ usage.inventory_item.item_name if usage.inventory_item else '' }}</td>
+      <td>{{ usage.student_name }}</td>
+      <td>{{ usage.quantity }}</td>
+      <td>{{ usage.unit_cost }}</td>
+      <td>{{ usage.date_issued }}</td>
+      <td>
+        <form method="POST" action="{{ url_for('delete_consumable_usage_db', usage_id=usage.id) }}" class="inline-form">
+          <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

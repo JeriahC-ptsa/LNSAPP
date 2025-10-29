@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>PTSA Dashboard</h1>
+<p>Here you can display some big summary cards or usage charts.</p>
+
+<div class="row">
+  <div class="col-md-3">
+    <div class="card text-center mb-3">
+      <div class="card-header">Number Utilised</div>
+      <div class="card-body">
+        <h5>{{ utilised_count }}</h5>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-center mb-3">
+      <div class="card-header">Number Idle</div>
+      <div class="card-body">
+        <h5>{{ idle_count }}</h5>
+      </div>
+    </div>
+  </div>
+  <!-- etc. for maintenance, breakdown, etc. -->
+</div>
+
+{% endblock %}

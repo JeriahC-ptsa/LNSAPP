@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+{% block title %}Assign Inventory{% endblock %}
+{% block content %}
+<div class="container-fluid">
+  <div class="row mb-4">
+    <div class="col-12">
+      <h2><i class="bi bi-box-arrow-right me-2"></i>Assign Inventory to Student Task</h2>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-8 col-lg-6">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <form method="POST">
+            <div class="mb-3">
+              <label class="form-label"><i class="bi bi-person me-1"></i>Student</label>
+              <select name="student_id" id="studentSelect" class="form-select" required onchange="filterTasks()">
+                <option value="">-- Select a student --</option>
+                {% for s in students %}
+                  <option value="{{ s.id }}">{{ s.student_name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            
+            <div class="mb-3">
+              <label class="form-label"><i class="bi bi-list-task me-1"></i>Mini-Task</label>
+              <select name="task_id" id="taskSelect" class="form-select" required disabled>
+                <option value="">-- Select a student first --</option>
+                {% for t in tasks %}
+                  <option value="{{ t.id }}" data-student-id="{{ t.student_id }}">{{ t.mini_task_title }}</option>
+                {% endfor %}
+              </select>
+              <small class="text-muted">Only tasks for the selected student will appear</small>
+            </div>
+            
+            <div class="mb-3">
+              <label class="form-label"><i class="bi bi-box me-1"></i>Inventory Item</label>
+              <select name="inventory_id" class="form-select" required>
+                <option value="">-- Select an inventory item --</option>
+                {% for i in inventory %}
+                  <option value="{{ i.id }}">{{ i.item_name }} ({{ i.quantity }} left)</option>
+                {% endfor %}
+              </select>
+            </div>
+            
+            <div class="mb-3">
+              <label class="form-label"><i class="bi bi-hash me-1"></i>Quantity</label>
+              <input type="number" class="form-control" name="quantity" required min="1" placeholder="Enter quantity">
+            </div>
+            
+            <button class="btn btn-primary" type="submit">
+              <i class="bi bi-check-circle me-1"></i>Assign
+            </button>
+            <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+              <i class="bi bi-x-circle me-1"></i>Cancel
+            </a>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Store all task options on page load
+let allTaskOptions = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+  const taskSelect = document.getElementById('taskSelect');
+  // Store all task options (except the first placeholder)
+  allTaskOptions = Array.from(taskSelect.querySelectorAll('option[data-student-id]')).map(opt => ({
+    value: opt.value,
+    text: opt.textContent,
+    studentId: opt.getAttribute('data-student-id')
+  }));
+});
+
+function filterTasks() {
+  const studentSelect = document.getElementById('studentSelect');
+  const taskSelect = document.getElementById('taskSelect');
+  const selectedStudentId = studentSelect.value;
+  
+  // Clear current options
+  taskSelect.innerHTML = '<option value="">-- Select a mini-task --</option>';
+  
+  if (selectedStudentId) {
+    // Enable the task select
+    taskSelect.disabled = false;
+    
+    // Filter and add matching tasks
+    const matchingTasks = allTaskOptions.filter(opt => opt.studentId === selectedStudentId);
+    
+    if (matchingTasks.length > 0) {
+      matchingTasks.forEach(task => {
+        const newOption = document.createElement('option');
+        newOption.value = task.value;
+        newOption.textContent = task.text;
+        newOption.setAttribute('data-student-id', task.studentId);
+        taskSelect.appendChild(newOption);
+      });
+    } else {
+      taskSelect.innerHTML = '<option value="">-- No tasks available for this student --</option>';
+    }
+  } else {
+    taskSelect.disabled = true;
+    taskSelect.innerHTML = '<option value="">-- Select a student first --</option>';
+  }
+}
+</script>
+{% endblock %}

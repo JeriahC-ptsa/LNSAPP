@@ -1,0 +1,202 @@
+{% extends 'base.html' %}
+{% block title %}Assign Modules to Students{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row mb-4">
+    <div class="col-12">
+      <h2><i class="bi bi-clipboard-check me-2"></i>Bulk Module Assignment</h2>
+      <p class="text-muted">Assign multiple modules to multiple students at once</p>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-12">
+      <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0"><i class="bi bi-plus-circle me-2"></i>Select Students and Modules</h5>
+        </div>
+        <div class="card-body">
+          <form method="POST" action="{{ url_for('assign_modules_bulk') }}" id="assignForm">
+            <div class="row">
+              <!-- Students Selection -->
+              <div class="col-md-6">
+                <div class="card mb-3">
+                  <div class="card-header bg-light">
+                    <h6 class="mb-0"><i class="bi bi-people-fill me-2"></i>Select Students</h6>
+                  </div>
+                  <div class="card-body" style="max-height: 500px; overflow-y: auto;">
+                    <!-- Filter by Group -->
+                    <div class="mb-3">
+                      <label class="form-label fw-bold">Filter by Group:</label>
+                      <select class="form-select" id="groupFilter" onchange="filterStudentsByGroup()">
+                        <option value="">All Students</option>
+                        {% for group in groups %}
+                        <option value="{{ group.id }}">{{ group.name }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+
+                    <!-- Select All -->
+                    <div class="form-check mb-3">
+                      <input class="form-check-input" type="checkbox" id="selectAllStudents" onchange="toggleAllStudents()">
+                      <label class="form-check-label fw-bold" for="selectAllStudents">
+                        Select All Students
+                      </label>
+                    </div>
+
+                    <!-- Student Checkboxes -->
+                    {% for student in students %}
+                    <div class="form-check student-checkbox" data-group-id="{{ student.group_id if student.group_id else '' }}">
+                      <input class="form-check-input student-cb" type="checkbox" name="student_ids[]" value="{{ student.id }}" id="student{{ student.id }}">
+                      <label class="form-check-label" for="student{{ student.id }}">
+                        {{ student.student_name }}
+                        {% if student.student_number %}
+                          <span class="badge bg-secondary">{{ student.student_number }}</span>
+                        {% endif %}
+                        {% if student.group %}
+                          <span class="badge bg-info">{{ student.group.name }}</span>
+                        {% endif %}
+                      </label>
+                    </div>
+                    {% endfor %}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Modules Selection -->
+              <div class="col-md-6">
+                <div class="card mb-3">
+                  <div class="card-header bg-light">
+                    <h6 class="mb-0"><i class="bi bi-book-fill me-2"></i>Select Modules</h6>
+                  </div>
+                  <div class="card-body" style="max-height: 500px; overflow-y: auto;">
+                    <!-- Filter by Category -->
+                    <div class="mb-3">
+                      <label class="form-label fw-bold">Filter by Category:</label>
+                      <select class="form-select" id="categoryFilter" onchange="filterModulesByCategory()">
+                        <option value="">All Categories</option>
+                        <option value="FUNDAMENTALS">Fundamentals</option>
+                        <option value="TOOLING U">Tooling U</option>
+                        <option value="THEORY MODULES">Theory Modules</option>
+                        <option value="PRACTICAL MODULES">Practical Modules</option>
+                      </select>
+                    </div>
+
+                    <!-- Select All -->
+                    <div class="form-check mb-3">
+                      <input class="form-check-input" type="checkbox" id="selectAllModules" onchange="toggleAllModules()">
+                      <label class="form-check-label fw-bold" for="selectAllModules">
+                        Select All Modules
+                      </label>
+                    </div>
+
+                    <!-- Module Checkboxes -->
+                    {% for module in modules %}
+                    <div class="form-check module-checkbox" data-category="{{ module.category if module.category else '' }}">
+                      <input class="form-check-input module-cb" type="checkbox" name="module_ids[]" value="{{ module.id }}" id="module{{ module.id }}">
+                      <label class="form-check-label" for="module{{ module.id }}">
+                        {{ module.name }}
+                        {% if module.code %}
+                          <span class="badge bg-secondary small">{{ module.code }}</span>
+                        {% endif %}
+                        {% if module.category %}
+                          <span class="badge bg-success small">{{ module.category }}</span>
+                        {% endif %}
+                      </label>
+                    </div>
+                    {% endfor %}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Summary and Action Buttons -->
+            <div class="row mt-3">
+              <div class="col-md-12">
+                <div class="alert alert-info">
+                  <i class="bi bi-info-circle me-2"></i>
+                  <strong>Selected:</strong> 
+                  <span id="selectedStudentsCount">0</span> student(s) and 
+                  <span id="selectedModulesCount">0</span> module(s)
+                </div>
+              </div>
+            </div>
+
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+              <a href="{{ url_for('modules_page') }}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left me-2"></i>Cancel
+              </a>
+              <a href="{{ url_for('view_module_assignments') }}" class="btn btn-info">
+                <i class="bi bi-eye me-2"></i>View Assignments
+              </a>
+              <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-circle me-2"></i>Assign Modules
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Update counts when checkboxes change
+document.addEventListener('DOMContentLoaded', function() {
+  updateCounts();
+  
+  document.querySelectorAll('.student-cb, .module-cb').forEach(cb => {
+    cb.addEventListener('change', updateCounts);
+  });
+});
+
+function updateCounts() {
+  const studentCount = document.querySelectorAll('.student-cb:checked').length;
+  const moduleCount = document.querySelectorAll('.module-cb:checked').length;
+  
+  document.getElementById('selectedStudentsCount').textContent = studentCount;
+  document.getElementById('selectedModulesCount').textContent = moduleCount;
+}
+
+function toggleAllStudents() {
+  const checked = document.getElementById('selectAllStudents').checked;
+  document.querySelectorAll('.student-checkbox:not([style*="display: none"]) .student-cb').forEach(cb => {
+    cb.checked = checked;
+  });
+  updateCounts();
+}
+
+function toggleAllModules() {
+  const checked = document.getElementById('selectAllModules').checked;
+  document.querySelectorAll('.module-checkbox:not([style*="display: none"]) .module-cb').forEach(cb => {
+    cb.checked = checked;
+  });
+  updateCounts();
+}
+
+function filterStudentsByGroup() {
+  const groupId = document.getElementById('groupFilter').value;
+  document.querySelectorAll('.student-checkbox').forEach(div => {
+    if (groupId === '' || div.dataset.groupId === groupId) {
+      div.style.display = 'block';
+    } else {
+      div.style.display = 'none';
+    }
+  });
+  document.getElementById('selectAllStudents').checked = false;
+}
+
+function filterModulesByCategory() {
+  const category = document.getElementById('categoryFilter').value;
+  document.querySelectorAll('.module-checkbox').forEach(div => {
+    if (category === '' || div.dataset.category === category) {
+      div.style.display = 'block';
+    } else {
+      div.style.display = 'none';
+    }
+  });
+  document.getElementById('selectAllModules').checked = false;
+}
+</script>
+{% endblock %}

@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+{% block title %}Feature Verification{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+  <h1 class="mb-4">🔍 Feature Verification Page</h1>
+  
+  <div class="row">
+    <!-- Check 1: Plotly Loaded -->
+    <div class="col-md-6 mb-4">
+      <div class="card">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0">✅ Plotly Chart Library</h5>
+        </div>
+        <div class="card-body">
+          <p id="plotly-status">Checking...</p>
+          <div id="test-chart"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Check 2: Permissions -->
+    <div class="col-md-6 mb-4">
+      <div class="card">
+        <div class="card-header bg-success text-white">
+          <h5 class="mb-0">🔐 Your Permissions</h5>
+        </div>
+        <div class="card-body">
+          <p><strong>Logged in as:</strong> {{ current_user.username }}</p>
+          <p><strong>Roles:</strong></p>
+          <ul>
+            {% for role in current_user.roles %}
+            <li>{{ role.name }}</li>
+            {% endfor %}
+          </ul>
+          <p><strong>Page Access:</strong></p>
+          <ul>
+            <li>Students: {{ '✅' if current_user.has_page_access('students') else '❌' }}</li>
+            <li>Modules: {{ '✅' if current_user.has_page_access('modules') else '❌' }}</li>
+            <li>Reports: {{ '✅' if current_user.has_page_access('reports') else '❌' }}</li>
+            <li>Admin: {{ '✅' if current_user.has_page_access('admin') else '❌' }}</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Check 3: New Filters -->
+    <div class="col-md-6 mb-4">
+      <div class="card">
+        <div class="card-header bg-info text-white">
+          <h5 class="mb-0">🎛️ New Report Filters</h5>
+        </div>
+        <div class="card-body">
+          <h6>Multi-Select Module Filter</h6>
+          <select class="form-select mb-3" multiple size="3">
+            <option>Test Module 1</option>
+            <option>Test Module 2</option>
+            <option>Test Module 3</option>
+          </select>
+          <small class="text-muted">✅ Multi-select working (Hold Ctrl/Cmd)</small>
+
+          <h6 class="mt-3">Status Checkboxes</h6>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="test1" checked>
+            <label class="form-check-label" for="test1">Passed</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="test2" checked>
+            <label class="form-check-label" for="test2">Failed</label>
+          </div>
+          <small class="text-muted">✅ Checkboxes working</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Check 4: Bulk Assignment -->
+    <div class="col-md-6 mb-4">
+      <div class="card">
+        <div class="card-header bg-warning text-dark">
+          <h5 class="mb-0">📚 Bulk Module Assignment</h5>
+        </div>
+        <div class="card-body">
+          <p><strong>Route Check:</strong></p>
+          <ul>
+            <li><a href="{{ url_for('assign_modules_bulk') }}" target="_blank">Assign Modules Page</a></li>
+            <li><a href="{{ url_for('view_module_assignments') }}" target="_blank">View Assignments Page</a></li>
+          </ul>
+          <p class="text-success">✅ Routes are registered</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="alert alert-info">
+    <h5>📝 What to Check:</h5>
+    <ol>
+      <li>See if "Plotly is loaded!" appears above</li>
+      <li>Verify your permissions are listed correctly</li>
+      <li>Check if multi-select and checkboxes work</li>
+      <li>Click the links to test bulk assignment pages</li>
+    </ol>
+  </div>
+
+  <div class="alert alert-warning">
+    <h5>🔄 If Something Doesn't Work:</h5>
+    <ol>
+      <li>Stop server: <code>Ctrl+C</code></li>
+      <li>Restart: <code>python app.py</code></li>
+      <li>Clear browser cache: <code>Ctrl+Shift+R</code></li>
+      <li>Check this page again</li>
+    </ol>
+  </div>
+</div>
+
+<script>
+// Check if Plotly is loaded
+if (typeof Plotly !== 'undefined') {
+  document.getElementById('plotly-status').innerHTML = '<strong class="text-success">✅ Plotly is loaded!</strong>';
+  
+  // Create a simple test chart
+  var data = [{
+    x: ['Test 1', 'Test 2', 'Test 3'],
+    y: [20, 14, 23],
+    type: 'bar',
+    marker: {color: '#4A90E2'}
+  }];
+  
+  var layout = {
+    title: 'Test Chart - If you see this, charts work!',
+    height: 300
+  };
+  
+  Plotly.newPlot('test-chart', data, layout);
+} else {
+  document.getElementById('plotly-status').innerHTML = '<strong class="text-danger">❌ Plotly not loaded</strong>';
+}
+</script>
+{% endblock %}

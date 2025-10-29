@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+{% block title %}Upload Students - Preview{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row mb-4">
+    <div class="col-12">
+      <h2><i class="bi bi-file-earmark-spreadsheet me-2"></i>Upload Students - Column Mapping</h2>
+      <p class="text-muted">Review detected columns and select which custom fields to create</p>
+    </div>
+  </div>
+
+  <form method="POST" action="{{ url_for('upload_students_confirm') }}">
+    <input type="hidden" name="filename" value="{{ filename }}">
+    <input type="hidden" name="header_row" value="{{ header_row }}">
+    <input type="hidden" name="intake_group_id" value="{{ intake_group_id }}">
+    
+    <!-- File Info -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="alert alert-info">
+          <i class="bi bi-info-circle me-2"></i>
+          <strong>File:</strong> {{ filename }} | 
+          <strong>Header Row:</strong> Row {{ header_row + 1 }} | 
+          <strong>Total Data Rows:</strong> {{ total_rows }} students |
+          <strong>Intake Group:</strong> <span class="badge bg-primary">{{ intake_group_name }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Built-in Columns -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="card shadow-sm">
+          <div class="card-header bg-success text-white">
+            <h5 class="mb-0"><i class="bi bi-check-circle me-2"></i>Built-in Columns (Will be imported automatically)</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              {% for col in columns %}
+                {% if col in ['Student Name', 'student_name', 'Group Name', 'group_name', 'Level', 'level', 'Mark', 'mark'] %}
+                <div class="col-md-3 mb-2">
+                  <span class="badge bg-success"><i class="bi bi-check"></i> {{ col }}</span>
+                </div>
+                {% endif %}
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Custom Columns -->
+    {% if custom_columns %}
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="card shadow-sm">
+          <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-plus-square me-2"></i>Custom Columns (Select to add as dynamic fields)</h5>
+          </div>
+          <div class="card-body">
+            <p class="text-muted">Select which columns you want to add as custom fields for students:</p>
+            
+            <div class="table-responsive">
+              <table class="table table-hover">
+                <thead>
+                  <tr>
+                    <th width="50">
+                      <input type="checkbox" class="form-check-input" id="selectAll" onclick="toggleAll(this)">
+                    </th>
+                    <th>Column Name</th>
+                    <th>Field Type</th>
+                    <th>Status</th>
+                    <th>Sample Values</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for col in custom_columns %}
+                  <tr>
+                    <td>
+                      <input type="checkbox" class="form-check-input field-checkbox" 
+                             name="dynamic_fields" value="{{ col }}" 
+                             {% if col not in existing_field_names %}checked{% endif %}>
+                    </td>
+                    <td><strong>{{ col }}</strong></td>
+                    <td>
+                      <select name="field_type_{{ col }}" class="form-select form-select-sm">
+                        <option value="text">Text</option>
+                        <option value="number">Number</option>
+                        <option value="date">Date</option>
+                        <option value="select">Dropdown</option>
+                      </select>
+                    </td>
+                    <td>
+                      {% if col in existing_field_names %}
+                        <span class="badge bg-warning">Already Exists</span>
+                      {% else %}
+                        <span class="badge bg-info">New Field</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      <small class="text-muted">
+                        {% for row in preview_data[:3] %}
+                          {% if col in row and row[col] %}
+                            {{ row[col] }}{% if not loop.last %}, {% endif %}
+                          {% endif %}
+                        {% endfor %}
+                      </small>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="alert alert-warning">
+      <i class="bi bi-exclamation-triangle me-2"></i>
+      No custom columns detected. Only built-in fields will be imported.
+    </div>
+    {% endif %}
+
+    <!-- Data Preview -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="card shadow-sm">
+          <div class="card-header bg-secondary text-white">
+            <h5 class="mb-0"><i class="bi bi-eye me-2"></i>Data Preview (First 5 rows)</h5>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-sm table-bordered">
+                <thead>
+                  <tr>
+                    {% for col in columns %}
+                    <th>{{ col }}</th>
+                    {% endfor %}
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for row in preview_data %}
+                  <tr>
+                    {% for col in columns %}
+                    <td>{{ row[col] if row[col] else '-' }}</td>
+                    {% endfor %}
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <button type="submit" class="btn btn-success btn-lg">
+          <i class="bi bi-upload me-2"></i>Confirm & Import Students
+        </button>
+        <a href="{{ url_for('list_students') }}" class="btn btn-outline-secondary btn-lg">
+          <i class="bi bi-x-circle me-2"></i>Cancel
+        </a>
+      </div>
+    </div>
+  </form>
+</div>
+
+<script>
+function toggleAll(checkbox) {
+  const checkboxes = document.querySelectorAll('.field-checkbox');
+  checkboxes.forEach(cb => cb.checked = checkbox.checked);
+}
+</script>
+{% endblock %}

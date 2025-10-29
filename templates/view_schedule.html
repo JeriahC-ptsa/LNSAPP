@@ -1,0 +1,182 @@
+{% extends 'base.html' %}
+{% block title %}View Schedule{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="mb-0"><i class="bi bi-calendar3 me-2"></i>Schedule Overview</h1>
+    <a href="{{ url_for('schedule_calendar') }}" class="btn btn-primary">
+      <i class="bi bi-calendar-week me-1"></i>Calendar View
+    </a>
+  </div>
+
+  <!-- Filters Card -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-3">
+          <input type="text" id="scheduleSearch" class="form-control" placeholder="🔍 Search...">
+        </div>
+        <div class="col-md-3">
+          <select id="machineFilter" class="form-select">
+            <option value="">All Machines</option>
+            {% for m in schedule_data | map(attribute='Machine') | unique %}
+            <option value="{{ m }}">{{ m }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-3">
+          <select id="groupFilter" class="form-select">
+            <option value="">All Groups</option>
+            {% for g in schedule_data | map(attribute='Group') | unique if g %}
+            <option value="{{ g }}">{{ g }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-3">
+          <input type="date" id="dateFilter" class="form-control" placeholder="Filter by Date">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Schedule Table -->
+  <div class="table-responsive">
+    <table class="table table-hover table-striped" id="scheduleTable">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Machine</th>
+          <th>Student</th>
+          <th>Group</th>
+          <th>Task</th>
+          <th>Start Time</th>
+          <th>End Time</th>
+          <th class="text-center">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for entry in schedule_data %}
+        <tr data-machine="{{ entry['Machine'] }}" data-group="{{ entry['Group'] }}" data-date="{{ entry['Start Time'][:10] }}">
+          <td><strong>{{ entry['id'] }}</strong></td>
+          <td>
+            <i class="bi bi-gear me-2 text-primary"></i>
+            <strong>{{ entry["Machine"] }}</strong>
+          </td>
+          <td>{{ entry["Student"] }}</td>
+          <td>
+            {% if entry["Group"] %}
+              <span class="badge bg-info">{{ entry["Group"] }}</span>
+            {% else %}
+              <span class="badge bg-secondary">N/A</span>
+            {% endif %}
+          </td>
+          <td>{{ entry["MiniTask"] or '—' }}</td>
+          <td>{{ entry["Start Time"] }}</td>
+          <td>{{ entry["End Time"] }}</td>
+          <td class="text-center">
+            <div class="btn-group" role="group">
+              {% if entry["mini_task_id"] %}
+                <a href="/student_module_form/{{ entry['mini_task_id'] }}/{{ entry['student_id'] }}" 
+                   class="btn btn-sm btn-primary" title="Record Progress">
+                  <i class="bi bi-journal-plus"></i>
+                </a>
+                <button class="btn btn-sm btn-success" title="Assign Inventory"
+                        data-bs-toggle="modal" 
+                        data-bs-target="#assignModal"
+                        data-student="{{ entry['student_id'] }}"
+                        data-task="{{ entry['mini_task_id'] }}">
+                  <i class="bi bi-box-seam"></i>
+                </button>
+              {% else %}
+                <a href="/select_module/{{ entry['student_id'] }}" class="btn btn-sm btn-secondary" title="Select Task">
+                  <i class="bi bi-plus-circle"></i>
+                </a>
+              {% endif %}
+              <form method="POST" action="{{ url_for('delete_schedule_slot', slot_id=entry['id']) }}" style="display:inline;" onsubmit="return confirm('Delete this schedule slot?');">
+                <button type="submit" class="btn btn-sm btn-danger" title="Delete">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 📦 Assign Inventory Modal -->
+  <div class="modal fade" id="assignModal" tabindex="-1" aria-labelledby="assignModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <form method="POST" action="/inventory/assign_modal" class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Assign Inventory</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" name="student_id" id="assignStudentId">
+          <input type="hidden" name="mini_task_id" id="assignTaskId">
+
+          <div class="mb-3">
+            <label>Inventory Item</label>
+            <select name="inventory_id" class="form-select">
+              {% for item in inventory %}
+              <option value="{{ item.id }}">{{ item.item_name }} (Available: {{ item.quantity }})</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label>Quantity</label>
+            <input type="number" name="quantity" class="form-control" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-success" type="submit">Assign</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- 🔍 Filter Script -->
+<script>
+  document.getElementById("scheduleSearch").addEventListener("input", function () {
+    const val = this.value.toLowerCase();
+    document.querySelectorAll("#scheduleTable tbody tr").forEach(row => {
+      row.style.display = row.innerText.toLowerCase().includes(val) ? "" : "none";
+    });
+  });
+
+  const filter = (id, attr) => {
+    document.getElementById(id).addEventListener("change", function () {
+      const val = this.value;
+      document.querySelectorAll("#scheduleTable tbody tr").forEach(row => {
+        const match = !val || row.dataset[attr] === val;
+        row.style.display = match ? "" : "none";
+      });
+    });
+  };
+
+  filter("machineFilter", "machine");
+  filter("groupFilter", "group");
+
+  document.getElementById("dateFilter").addEventListener("change", function () {
+    const val = this.value;
+    document.querySelectorAll("#scheduleTable tbody tr").forEach(row => {
+      const match = !val || row.dataset.date === val;
+      row.style.display = match ? "" : "none";
+    });
+  });
+
+  // 🎯 Populate Assign Inventory Modal
+  const modal = document.getElementById('assignModal');
+  modal.addEventListener('show.bs.modal', function (event) {
+    const button = event.relatedTarget;
+    document.getElementById('assignStudentId').value = button.getAttribute('data-student');
+    document.getElementById('assignTaskId').value = button.getAttribute('data-task');
+  });
+</script>
+{% endblock %}
+

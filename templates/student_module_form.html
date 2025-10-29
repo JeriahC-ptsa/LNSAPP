@@ -1,0 +1,162 @@
+{% extends 'base.html' %}
+{% block title %}Record Attempt - {{ student.student_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row mb-4">
+    <div class="col-12">
+      <h2><i class="bi bi-journal-check me-2"></i>Record Mini-Task Attempts</h2>
+      <p class="text-muted">
+        <strong>Student:</strong> {{ student.student_name }} | 
+        <strong>Mini-Task:</strong> {{ mini_task.title }} ({{ mini_task.module.name }})
+      </p>
+    </div>
+  </div>
+
+  <!-- Add New Attempt Form -->
+  <div class="row mb-4">
+    <div class="col-lg-8">
+      <div class="card shadow-sm">
+        <div class="card-header bg-success text-white">
+          <h5 class="mb-0"><i class="bi bi-plus-circle me-2"></i>Add New Attempt</h5>
+        </div>
+        <div class="card-body">
+          <form method="POST">
+            <input type="hidden" name="action" value="add_attempt">
+            
+            <div class="row">
+              <div class="col-md-4 mb-3">
+                <label class="form-label"><strong>Attempt Type</strong></label>
+                <select class="form-select" name="attempt_type" required>
+                  <option value="">-- Select Type --</option>
+                  <option value="regular">Regular Attempt</option>
+                  <option value="iwp">Integrated Work Piece (IWP)</option>
+                  <option value="cwp">Credential Work Piece (CWP)</option>
+                  <option value="oe">Online Exam (OE)</option>
+                </select>
+              </div>
+              
+              <div class="col-md-4 mb-3">
+                <label class="form-label"><strong>Result</strong></label>
+                <select class="form-select" name="result" required>
+                  <option value="">-- Select Result --</option>
+                  <option value="Pass">✓ Pass</option>
+                  <option value="Fail">✗ Fail</option>
+                </select>
+              </div>
+              
+              <div class="col-md-4 mb-3">
+                <label class="form-label"><strong>Action</strong></label>
+                <button type="submit" class="btn btn-success w-100">
+                  <i class="bi bi-plus-circle me-1"></i>Add Attempt
+                </button>
+              </div>
+            </div>
+            
+            <div class="mb-0">
+              <label class="form-label"><strong>Notes for this attempt (optional)</strong></label>
+              <textarea class="form-control" name="attempt_notes" rows="2" placeholder="Any notes specific to this attempt..."></textarea>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-lg-10">
+      <!-- Recorded Attempts by Type -->
+      {% set attempt_types = [
+        ('Online', 'Online Assessments', 'laptop', 'info'),
+        ('MT', 'Module Tests (MT)', 'clipboard-check', 'primary'),
+        ('MT1', 'Module Test 1 (MT1)', 'clipboard-check', 'primary'),
+        ('MT2', 'Module Test 2 (MT2)', 'clipboard-check', 'primary'),
+        ('IWP', 'In-class Written Project (IWP)', 'puzzle', 'success'),
+        ('CWP', 'Class Written Project (CWP)', 'award', 'warning')
+      ] %}
+      
+      {% for type_key, type_name, icon, color in attempt_types %}
+      <div class="card shadow-sm mb-4">
+        <div class="card-header bg-{{ color }} {% if color == 'warning' %}text-dark{% else %}text-white{% endif %}">
+          <h5 class="mb-0">
+            <i class="bi bi-{{ icon }} me-2"></i>{{ type_name }}
+            <span class="badge bg-light text-dark ms-2">{{ attempts_by_type[type_key]|length if attempts_by_type else 0 }} recorded</span>
+          </h5>
+        </div>
+        <div class="card-body">
+          {% if attempts_by_type and attempts_by_type[type_key] %}
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th width="50">#</th>
+                  <th>Result</th>
+                  <th>Date</th>
+                  <th>Notes</th>
+                  <th width="100">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for attempt in attempts_by_type[type_key] %}
+                <tr>
+                  <td><strong>{{ loop.index }}</strong></td>
+                  <td>
+                    {% if attempt.result == 'Pass' %}
+                      <span class="badge bg-success">✓ Pass</span>
+                    {% else %}
+                      <span class="badge bg-danger">✗ Fail</span>
+                    {% endif %}
+                  </td>
+                  <td><small>{{ attempt.attempt_date.strftime('%Y-%m-%d %H:%M') }}</small></td>
+                  <td><small class="text-muted">{{ attempt.notes if attempt.notes else '-' }}</small></td>
+                  <td>
+                    <form method="POST" style="display:inline;" onsubmit="return confirm('Delete this attempt?');">
+                      <input type="hidden" name="action" value="delete_attempt">
+                      <input type="hidden" name="attempt_id" value="{{ attempt.id }}">
+                      <button type="submit" class="btn btn-sm btn-outline-danger">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </form>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <p class="text-muted mb-0">
+            <i class="bi bi-info-circle me-2"></i>No {{ type_name.lower() }} recorded yet. Use the form above to add attempts.
+          </p>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+
+      <!-- General Notes Section -->
+      <form method="POST">
+        <div class="card shadow-sm mb-4">
+          <div class="card-header bg-secondary text-white">
+            <h5 class="mb-0"><i class="bi bi-sticky me-2"></i>General Notes</h5>
+          </div>
+          <div class="card-body">
+            <textarea class="form-control" name="notes" rows="4" 
+                      placeholder="Any general notes about the student's progress on this mini-task...">{{ progress.notes if progress else '' }}</textarea>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="d-flex gap-2 mb-4">
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check-circle me-2"></i>Update Notes
+          </button>
+          <a href="{{ url_for('modules_page') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-2"></i>Back to Modules
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+

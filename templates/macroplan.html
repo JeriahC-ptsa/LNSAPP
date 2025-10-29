@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+{% block title %}Macro Plan{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="mb-0"><i class="bi bi-map me-2"></i>Macro Plan</h1>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addMacroPlanModal">
+      <i class="bi bi-plus-circle me-1"></i>Add Plan
+    </button>
+  </div>
+
+  {% if rows %}
+  <div class="table-responsive">
+    <table class="table table-hover table-striped">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Machine</th>
+          <th>Date</th>
+          <th>Planned Maint. (hrs)</th>
+          <th>Breakdown (hrs)</th>
+          <th>Capacity (hrs)</th>
+          <th>Usage (hrs)</th>
+          <th class="text-center">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+        <tr>
+          <td><strong>{{ r.id }}</strong></td>
+          <td>
+            <i class="bi bi-gear me-2 text-primary"></i>
+            <strong>{{ r.machine_name }}</strong>
+          </td>
+          <td>{{ r.date.strftime('%Y-%m-%d') if r.date else 'N/A' }}</td>
+          <td><span class="badge bg-warning">{{ r.planned_maintenance }}</span></td>
+          <td><span class="badge bg-danger">{{ r.breakdown }}</span></td>
+          <td><span class="badge bg-info">{{ r.installed_capacity }}</span></td>
+          <td><span class="badge bg-success">{{ r.usage }}</span></td>
+          <td class="text-center">
+            <div class="btn-group" role="group">
+              <a href="{{ url_for('macroplan_edit', plan_id=r.id) }}" class="btn btn-sm btn-warning" title="Edit">
+                <i class="bi bi-pencil"></i>
+              </a>
+              <form method="POST" action="{{ url_for('macroplan_delete', plan_id=r.id) }}" style="display:inline;" onsubmit="return confirm('Delete this plan?');">
+                <button type="submit" class="btn btn-sm btn-danger" title="Delete">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="alert alert-info">
+    <i class="bi bi-info-circle me-2"></i>No Macro Plan data available. Click "Add Plan" to create one.
+  </div>
+  {% endif %}
+</div>
+
+<!-- Add Macro Plan Modal -->
+<div class="modal fade" id="addMacroPlanModal" tabindex="-1" aria-labelledby="addMacroPlanModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <form method="POST" action="{{ url_for('macroplan_add') }}" class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="addMacroPlanModalLabel">Add Macro Plan</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label for="machine_name" class="form-label">Machine <span class="text-danger">*</span></label>
+            <select class="form-select" id="machine_name" name="machine_name" required>
+              <option value="">-- Select Machine --</option>
+              {% for machine in machines %}
+                <option value="{{ machine.machine_name }}">{{ machine.machine_name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="col-md-6 mb-3">
+            <label for="date" class="form-label">Date <span class="text-danger">*</span></label>
+            <input type="date" class="form-control" id="date" name="date" required>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label for="planned_maintenance" class="form-label">Planned Maintenance (hrs)</label>
+            <input type="number" class="form-control" id="planned_maintenance" name="planned_maintenance" min="0" step="0.01" value="0">
+          </div>
+
+          <div class="col-md-6 mb-3">
+            <label for="breakdown" class="form-label">Breakdown (hrs)</label>
+            <input type="number" class="form-control" id="breakdown" name="breakdown" min="0" step="0.01" value="0">
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label for="installed_capacity" class="form-label">Installed Capacity (hrs)</label>
+            <input type="number" class="form-control" id="installed_capacity" name="installed_capacity" min="0" step="0.01" value="0">
+          </div>
+
+          <div class="col-md-6 mb-3">
+            <label for="usage" class="form-label">Usage (hrs)</label>
+            <input type="number" class="form-control" id="usage" name="usage" min="0" step="0.01" value="0">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-save me-1"></i>Save Plan
+        </button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+

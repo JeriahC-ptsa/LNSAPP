@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+env/
+ENV/
+
+# Flask
+instance/
+.env
+.env.local
+*.db
+*.sqlite
+*.sqlite3
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific - LnSapp
+database.db
+app.db
+lns_app.db
+temp_uploads/
+Groups.xlsx
+
+# Migration files that might have local paths
+migrations/versions/*.pyc
+
+# Secrets - NEVER commit these!
+.env
+config_local.py

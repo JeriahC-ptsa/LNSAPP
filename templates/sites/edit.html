@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% block title %}Edit Site - {{ site.name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+      <div class="card shadow-sm">
+        <div class="card-header bg-secondary text-white">
+          <h4 class="mb-0">
+            <i class="bi bi-pencil me-2"></i>Edit Site: {{ site.name }}
+          </h4>
+        </div>
+        <div class="card-body">
+          <form method="POST" action="{{ url_for('edit_site', site_id=site.id) }}">
+            <div class="mb-3">
+              <label for="name" class="form-label">
+                Site Name <span class="text-danger">*</span>
+              </label>
+              <input type="text" class="form-control" id="name" name="name" required 
+                     value="{{ site.name }}" placeholder="e.g., Gauteng Campus">
+            </div>
+
+            <div class="mb-3">
+              <label for="code" class="form-label">
+                Site Code <span class="text-danger">*</span>
+              </label>
+              <input type="text" class="form-control" id="code" name="code" required 
+                     value="{{ site.code }}" placeholder="e.g., MAIN" maxlength="50" 
+                     style="text-transform: uppercase;">
+              <small class="text-muted">Short unique code (will be converted to uppercase)</small>
+            </div>
+
+            <div class="mb-3">
+              <label for="location" class="form-label">Location</label>
+              <input type="text" class="form-control" id="location" name="location" 
+                     value="{{ site.location or '' }}" placeholder="e.g., Pretoria">
+            </div>
+
+            <div class="mb-3">
+              <label for="address" class="form-label">Address</label>
+              <textarea class="form-control" id="address" name="address" rows="3" 
+                        placeholder="Full address">{{ site.address or '' }}</textarea>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="phone" class="form-label">Phone</label>
+                <input type="tel" class="form-control" id="phone" name="phone" 
+                       value="{{ site.phone or '' }}" placeholder="+27 11 123 4567">
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label for="email" class="form-label">Email</label>
+                <input type="email" class="form-control" id="email" name="email" 
+                       value="{{ site.email or '' }}" placeholder="site@example.com">
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="is_active" name="is_active" 
+                       {% if site.is_active %}checked{% endif %}>
+                <label class="form-check-label" for="is_active">
+                  <strong>Active</strong>
+                  <small class="text-muted d-block">Users can access this site</small>
+                </label>
+              </div>
+            </div>
+
+            <div class="alert alert-info">
+              <i class="bi bi-info-circle me-2"></i>
+              <strong>Created:</strong> {{ site.created_date.strftime('%Y-%m-%d %H:%M') if site.created_date else 'Unknown' }}
+            </div>
+
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+              <a href="{{ url_for('list_sites') }}" class="btn btn-secondary">
+                <i class="bi bi-x-circle me-1"></i>Cancel
+              </a>
+              <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-circle me-1"></i>Update Site
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Auto-uppercase the code field
+document.getElementById('code').addEventListener('input', function(e) {
+  e.target.value = e.target.value.toUpperCase();
+});
+</script>
+{% endblock %}

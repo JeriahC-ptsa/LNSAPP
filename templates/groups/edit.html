@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% block title %}Edit Group{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <div class="card shadow-sm">
+        <div class="card-header">
+          <h4 class="mb-0"><i class="bi bi-pencil-square me-2"></i>Edit Group</h4>
+        </div>
+        <div class="card-body">
+          <form method="POST" action="{{ url_for('groups_edit', group_id=group.id) }}">
+            <div class="mb-3">
+              <label for="name" class="form-label">Group Name <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="name" name="name" value="{{ group.name }}" required>
+            </div>
+
+            <div class="mb-3">
+              <label for="date_added" class="form-label">Date Added</label>
+              <input type="date" class="form-control" id="date_added" name="date_added" 
+                     value="{% if group.date_added %}{{ group.date_added.strftime('%Y-%m-%d') }}{% endif %}">
+              <small class="form-text text-muted">Date when the group was formed/added</small>
+            </div>
+
+            <div class="mb-3">
+              <label for="site_id" class="form-label">Site <span class="text-danger">*</span></label>
+              <select class="form-select" id="site_id" name="site_id" required>
+                <option value="">-- Select Site --</option>
+                {% for site in sites %}
+                  <option value="{{ site.id }}" {% if site.id == group.site_id %}selected{% endif %}>
+                    {{ site.name }} ({{ site.code }})
+                  </option>
+                {% endfor %}
+              </select>
+              <small class="form-text text-muted">The site/location where this group is assigned</small>
+            </div>
+
+            <div class="mb-3">
+              <label for="province" class="form-label">Province</label>
+              <select class="form-select" id="province" name="province">
+                <option value="">-- Select Province --</option>
+                <option value="Eastern Cape" {% if group.province == 'Eastern Cape' %}selected{% endif %}>Eastern Cape</option>
+                <option value="Free State" {% if group.province == 'Free State' %}selected{% endif %}>Free State</option>
+                <option value="Gauteng" {% if group.province == 'Gauteng' %}selected{% endif %}>Gauteng</option>
+                <option value="KwaZulu-Natal" {% if group.province == 'KwaZulu-Natal' %}selected{% endif %}>KwaZulu-Natal</option>
+                <option value="Limpopo" {% if group.province == 'Limpopo' %}selected{% endif %}>Limpopo</option>
+                <option value="Mpumalanga" {% if group.province == 'Mpumalanga' %}selected{% endif %}>Mpumalanga</option>
+                <option value="Northern Cape" {% if group.province == 'Northern Cape' %}selected{% endif %}>Northern Cape</option>
+                <option value="North West" {% if group.province == 'North West' %}selected{% endif %}>North West</option>
+                <option value="Western Cape" {% if group.province == 'Western Cape' %}selected{% endif %}>Western Cape</option>
+              </select>
+              <small class="form-text text-muted">The province where the group is located</small>
+            </div>
+
+            <div class="d-flex gap-2">
+              <button type="submit" class="btn btn-primary">
+                <i class="bi bi-save me-1"></i>Update Group
+              </button>
+              <a href="{{ url_for('groups_list') }}" class="btn btn-secondary">
+                <i class="bi bi-x-circle me-1"></i>Cancel
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

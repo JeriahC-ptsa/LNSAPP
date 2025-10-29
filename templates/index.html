@@ -1,0 +1,655 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+  <h1>PTSA Scheduler Dashboard</h1>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <!-- Dashboard Cards Row 1 -->
+  <div class="row mb-4">
+    <!-- Machines in Use Card -->
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card text-center shadow-sm border-0 h-100 hover-lift" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#machinesModal">
+        <div class="card-body">
+          <div class="mb-2">
+            <i class="bi bi-gear-fill text-primary" style="font-size: 2.5rem;"></i>
+          </div>
+          <h3 class="mb-1">{{ machines_in_use }}/{{ total_machines }}</h3>
+          <p class="text-muted mb-0">Machines in Use</p>
+          <small class="text-primary"><i class="bi bi-info-circle me-1"></i>Click for details</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Total Spent Card -->
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card text-center shadow-sm border-0 h-100 hover-lift" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#spendingModal">
+        <div class="card-body">
+          <div class="mb-2">
+            <i class="bi bi-currency-dollar text-success" style="font-size: 2.5rem;"></i>
+          </div>
+          <h3 class="mb-1">R{{ total_spent }}</h3>
+          <p class="text-muted mb-0">Total Spent</p>
+          <small class="text-success"><i class="bi bi-info-circle me-1"></i>Click for breakdown</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Average Spend Card -->
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card text-center shadow-sm border-0 h-100 hover-lift" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#avgSpendModal">
+        <div class="card-body">
+          <div class="mb-2">
+            <i class="bi bi-person-badge text-warning" style="font-size: 2.5rem;"></i>
+          </div>
+          <h3 class="mb-1">R{{ avg_spend_per_student }}</h3>
+          <p class="text-muted mb-0">Avg per Student</p>
+          <small class="text-warning"><i class="bi bi-info-circle me-1"></i>Click for details</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Inventory Used Card -->
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card text-center shadow-sm border-0 h-100 hover-lift" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#inventoryModal">
+        <div class="card-body">
+          <div class="mb-2">
+            <i class="bi bi-box-seam text-info" style="font-size: 2.5rem;"></i>
+          </div>
+          <h3 class="mb-1">{{ total_inventory_used }}</h3>
+          <p class="text-muted mb-0">Items Used</p>
+          <small class="text-info"><i class="bi bi-info-circle me-1"></i>Click for breakdown</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dashboard Cards Row 2: Group Analytics -->
+  <div class="row mb-4">
+    <!-- Total Groups Card -->
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card text-center shadow-sm border-0 h-100 hover-lift" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#groupsOverviewModal">
+        <div class="card-body">
+          <div class="mb-2">
+            <i class="bi bi-collection-fill text-purple" style="font-size: 2.5rem; color: #6f42c1;"></i>
+          </div>
+          <h3 class="mb-1">{{ total_groups }}</h3>
+          <p class="text-muted mb-0">Active Groups</p>
+          <small style="color: #6f42c1;"><i class="bi bi-info-circle me-1"></i>Click for breakdown</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Spending by Group Card -->
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card text-center shadow-sm border-0 h-100 hover-lift" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#groupSpendingModal">
+        <div class="card-body">
+          <div class="mb-2">
+            <i class="bi bi-cash-stack text-danger" style="font-size: 2.5rem;"></i>
+          </div>
+          <h3 class="mb-1">{{ spending_by_group|length }}</h3>
+          <p class="text-muted mb-0">Groups Tracked</p>
+          <small class="text-danger"><i class="bi bi-info-circle me-1"></i>View spending</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Item Usage by Group Card -->
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card text-center shadow-sm border-0 h-100 hover-lift" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#groupItemUsageModal">
+        <div class="card-body">
+          <div class="mb-2">
+            <i class="bi bi-boxes" style="font-size: 2.5rem; color: #fd7e14;"></i>
+          </div>
+          <h3 class="mb-1">{{ group_item_usage|length }}</h3>
+          <p class="text-muted mb-0">Groups Using Items</p>
+          <small style="color: #fd7e14;"><i class="bi bi-info-circle me-1"></i>View details</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Machine Usage by Group Card -->
+    <div class="col-lg-3 col-md-6 mb-3">
+      <div class="card text-center shadow-sm border-0 h-100 hover-lift" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#groupMachineUsageModal">
+        <div class="card-body">
+          <div class="mb-2">
+            <i class="bi bi-gear-wide-connected" style="font-size: 2.5rem; color: #20c997;"></i>
+          </div>
+          <h3 class="mb-1">{{ machine_usage_by_group|length }}</h3>
+          <p class="text-muted mb-0">Group-Machine Pairs</p>
+          <small style="color: #20c997;"><i class="bi bi-info-circle me-1"></i>View usage</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Analytics Charts -->
+  <div class="row">
+    <div class="col-md-6">
+      <h3>Machine Usage</h3>
+      <canvas id="machineUsageChart"></canvas>
+    </div>
+    <div class="col-md-6">
+      <h3>Inventory Consumption</h3>
+      <canvas id="inventoryChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Schedule Generation Section -->
+  <div id="schedule-generation" class="card shadow-sm mb-4">
+    <div class="card-header bg-gradient-primary text-white">
+      <h4 class="mb-0"><i class="bi bi-magic me-2"></i>Generate Schedule Automatically</h4>
+    </div>
+    <div class="card-body">
+      <form action="{{ url_for('generate_schedule') }}" method="POST" class="row g-3">
+        {% for label, name, type, value in [
+          ("Base Slot Duration (minutes)", "slot_duration", "number", ""),
+          ("Start Date", "start_date", "date", ""),
+          ("End Date", "end_date", "date", ""),
+          ("Start Time", "start_time", "time", "08:00"),
+          ("End Time", "end_time", "time", "17:00"),
+          ("Threshold Mark for Extra Time", "threshold_mark", "number", ""),
+          ("Auto Extra Time (minutes)", "auto_extra_time", "number", ""),
+          ("Allowance Time Between Slots (minutes)", "allowance_time", "number", ""),
+          ("Lunch Start Time", "lunch_start", "time", "12:00"),
+          ("Lunch Duration (minutes)", "lunch_duration", "number", "60")
+        ] %}
+        <div class="col-md-4">
+          <label class="form-label">{{ label }}</label>
+          <input class="form-control" type="{{ type }}" name="{{ name }}" value="{{ value }}" placeholder="Enter {{ label }}">
+        </div>
+        {% endfor %}
+        <div class="col-md-4">
+          <label class="form-label">Scheduling Priority Rule</label>
+          <select class="form-select" name="priority_rule">
+            <option value="FIFO">FIFO (First In First Out)</option>
+            <option value="SPT">SPT (Shortest Processing Time)</option>
+            <option value="LPT">LPT (Longest Processing Time)</option>
+          </select>
+        </div>
+        <div class="col-md-12">
+          <button class="btn btn-primary btn-lg" type="submit">
+            <i class="bi bi-calendar-check me-2"></i>Generate Schedule
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Manual Scheduling -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-gradient-primary text-white">
+      <h4 class="mb-0"><i class="bi bi-pencil-square me-2"></i>Manual Schedule Entry</h4>
+    </div>
+    <div class="card-body">
+      <button class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#manualScheduleModal">
+        <i class="bi bi-plus-circle me-2"></i>Add Manual Entry
+      </button>
+    </div>
+  </div>
+
+  <div class="modal fade" id="manualScheduleModal" tabindex="-1" aria-labelledby="manualScheduleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <form action="{{ url_for('manual_add_schedule') }}" method="POST" class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Add Manual Schedule Entry</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body row g-3">
+          <div class="col-md-4">
+            <label>Select Students</label>
+            {% for student in students %}
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="students" value="{{ student.student_name }}" id="student_{{ student.id }}">
+                <label class="form-check-label" for="student_{{ student.id }}">{{ student.student_name }}</label>
+              </div>
+            {% endfor %}
+          </div>
+          <div class="col-md-4">
+            <label>Select Groups</label>
+            {% for group in groups %}
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="groups" value="{{ group.name }}" id="group_{{ group.id }}">
+                <label class="form-check-label" for="group_{{ group.id }}">{{ group.name }}</label>
+              </div>
+            {% endfor %}
+          </div>
+          <div class="col-md-4">
+            <label>Select Machines</label>
+            {% for machine in machines %}
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="machines" value="{{ machine.machine_name }}" id="machine_{{ machine.id }}">
+                <label class="form-check-label" for="machine_{{ machine.id }}">{{ machine.machine_name }}</label>
+              </div>
+            {% endfor %}
+          </div>
+
+          <div class="col-md-4">
+            <label>Date</label>
+            <input type="date" name="date" class="form-control" required>
+          </div>
+          <div class="col-md-4">
+            <label>Start Time</label>
+            <input type="time" name="start_time" class="form-control" required>
+          </div>
+          <div class="col-md-4">
+            <label>End Time</label>
+            <input type="time" name="end_time" class="form-control" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-success">Add Schedule</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Machines Modal -->
+<div class="modal fade" id="machinesModal" tabindex="-1" aria-labelledby="machinesModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="machinesModalLabel"><i class="bi bi-gear-fill me-2"></i>Machine Usage Breakdown</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <h6 class="mb-3">Total Machines: {{ total_machines }} | In Use: {{ machines_in_use }}</h6>
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead class="table-light">
+              <tr>
+                <th>Machine Name</th>
+                <th>Total Hours Used</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in machine_usage_breakdown %}
+              <tr>
+                <td><i class="bi bi-gear me-2"></i>{{ item.machine }}</td>
+                <td><span class="badge bg-primary">{{ item.hours }} hrs</span></td>
+                <td><span class="badge bg-success">Active</span></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Spending Modal -->
+<div class="modal fade" id="spendingModal" tabindex="-1" aria-labelledby="spendingModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title" id="spendingModalLabel"><i class="bi bi-currency-dollar me-2"></i>Total Spending Breakdown</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-info">
+          <strong>Total Spent:</strong> R{{ total_spent }}
+        </div>
+        
+        <h6 class="mt-4 mb-3">Spending by Item</h6>
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead class="table-light">
+              <tr>
+                <th>Item</th>
+                <th>Quantity Used</th>
+                <th>Total Cost</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in spending_by_item %}
+              <tr>
+                <td><i class="bi bi-box me-2"></i>{{ item.consumable }}</td>
+                <td><span class="badge bg-info">{{ item.qty }} units</span></td>
+                <td><strong>R{{ item.cost|round(2) }}</strong></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <h6 class="mt-4 mb-3">Top 10 Students by Spending</h6>
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead class="table-light">
+              <tr>
+                <th>Student Name</th>
+                <th>Total Cost</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for student in spending_by_student[:10] %}
+              <tr>
+                <td><i class="bi bi-person me-2"></i>{{ student.student_name }}</td>
+                <td><strong>R{{ student.total_cost|round(2) }}</strong></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Average Spend Modal -->
+<div class="modal fade" id="avgSpendModal" tabindex="-1" aria-labelledby="avgSpendModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-warning">
+        <h5 class="modal-title" id="avgSpendModalLabel"><i class="bi bi-person-badge me-2"></i>Average Spend per Student</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row mb-4">
+          <div class="col-md-4">
+            <div class="card bg-light">
+              <div class="card-body text-center">
+                <h6 class="text-muted">Total Students</h6>
+                <h3>{{ total_students }}</h3>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card bg-light">
+              <div class="card-body text-center">
+                <h6 class="text-muted">Total Spent</h6>
+                <h3>R{{ total_spent }}</h3>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card bg-warning">
+              <div class="card-body text-center">
+                <h6 class="text-white">Average</h6>
+                <h3 class="text-white">R{{ avg_spend_per_student }}</h3>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <h6 class="mb-3">All Students Spending</h6>
+        <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+          <table class="table table-hover table-sm">
+            <thead class="table-light sticky-top">
+              <tr>
+                <th>Student Name</th>
+                <th>Amount Spent</th>
+                <th>vs Average</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for student in spending_by_student %}
+              <tr>
+                <td>{{ student.student_name }}</td>
+                <td>R{{ student.total_cost|round(2) }}</td>
+                <td>
+                  {% if student.total_cost > avg_spend_per_student %}
+                    <span class="badge bg-danger">+R{{ (student.total_cost - avg_spend_per_student)|round(2) }}</span>
+                  {% else %}
+                    <span class="badge bg-success">-R{{ (avg_spend_per_student - student.total_cost)|round(2) }}</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Inventory Used Modal -->
+<div class="modal fade" id="inventoryModal" tabindex="-1" aria-labelledby="inventoryModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-info text-white">
+        <h5 class="modal-title" id="inventoryModalLabel"><i class="bi bi-box-seam me-2"></i>Inventory Usage Breakdown</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-info">
+          <strong>Total Items Used:</strong> {{ total_inventory_used }} units
+        </div>
+
+        <h6 class="mb-3">Usage by Item</h6>
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead class="table-light">
+              <tr>
+                <th>Item Name</th>
+                <th>Quantity Used</th>
+                <th>Total Cost</th>
+                <th>Percentage</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in spending_by_item %}
+              {% set percentage = (item.qty / total_inventory_used * 100)|round(1) %}
+              <tr>
+                <td><i class="bi bi-box me-2"></i>{{ item.consumable }}</td>
+                <td><span class="badge bg-primary">{{ item.qty }} units</span></td>
+                <td><strong>R{{ item.cost|round(2) }}</strong></td>
+                <td>
+                  <div class="progress" style="height: 20px;">
+                    <div class="progress-bar bg-info" role="progressbar" 
+                         style="width: {{ percentage }}%"
+                         aria-valuenow="{{ percentage }}" 
+                         aria-valuemin="0" aria-valuemax="100">
+                      {{ percentage }}%
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Groups Overview Modal -->
+<div class="modal fade" id="groupsOverviewModal" tabindex="-1" aria-labelledby="groupsOverviewModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header" style="background: linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%); color: white;">
+        <h5 class="modal-title" id="groupsOverviewModalLabel"><i class="bi bi-collection-fill me-2"></i>Groups Overview</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-info">
+          <strong>Total Active Groups:</strong> {{ total_groups }}
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead class="table-light">
+              <tr>
+                <th>Group Name</th>
+                <th>Student Count</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for group in groups %}
+              <tr>
+                <td><i class="bi bi-collection me-2"></i><strong>{{ group.name }}</strong></td>
+                <td><span class="badge bg-primary">{{ group.students|length }} students</span></td>
+                <td><a href="{{ url_for('groups_list') }}" class="btn btn-sm btn-outline-primary">View Details</a></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Group Spending Modal -->
+<div class="modal fade" id="groupSpendingModal" tabindex="-1" aria-labelledby="groupSpendingModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title" id="groupSpendingModalLabel"><i class="bi bi-cash-stack me-2"></i>Spending by Group</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-warning">
+          <strong>Total Groups Tracked:</strong> {{ spending_by_group|length }}
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead class="table-light">
+              <tr>
+                <th>Group Name</th>
+                <th>Students</th>
+                <th>Total Spent</th>
+                <th>Avg per Student</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for group_name, total_cost, student_count in spending_by_group %}
+              <tr>
+                <td><i class="bi bi-collection me-2 text-danger"></i><strong>{{ group_name }}</strong></td>
+                <td><span class="badge bg-info">{{ student_count }}</span></td>
+                <td><strong class="text-danger">R{{ total_cost|round(2) }}</strong></td>
+                <td>R{{ (total_cost / student_count)|round(2) if student_count > 0 else 0 }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Group Item Usage Modal -->
+<div class="modal fade" id="groupItemUsageModal" tabindex="-1" aria-labelledby="groupItemUsageModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header" style="background-color: #fd7e14; color: white;">
+        <h5 class="modal-title" id="groupItemUsageModalLabel"><i class="bi bi-boxes me-2"></i>Item Usage by Group</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        {% for group_name, items in group_item_usage.items() %}
+        <div class="mb-4">
+          <h6 class="border-bottom pb-2"><i class="bi bi-collection me-2" style="color: #fd7e14;"></i>{{ group_name }}</h6>
+          <div class="table-responsive">
+            <table class="table table-sm table-hover">
+              <thead class="table-light">
+                <tr>
+                  <th>Item</th>
+                  <th>Quantity</th>
+                  <th>Cost</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for item_data in items %}
+                <tr>
+                  <td><i class="bi bi-box me-2"></i>{{ item_data.item }}</td>
+                  <td><span class="badge bg-primary">{{ item_data.qty }} units</span></td>
+                  <td><strong>R{{ item_data.cost|round(2) }}</strong></td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Group Machine Usage Modal -->
+<div class="modal fade" id="groupMachineUsageModal" tabindex="-1" aria-labelledby="groupMachineUsageModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header" style="background-color: #20c997; color: white;">
+        <h5 class="modal-title" id="groupMachineUsageModalLabel"><i class="bi bi-gear-wide-connected me-2"></i>Machine Usage by Group</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead class="table-light">
+              <tr>
+                <th>Group</th>
+                <th>Machine</th>
+                <th>Slots</th>
+                <th>Total Hours</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for group_name, machine_name, slot_count, total_seconds in machine_usage_by_group %}
+              <tr>
+                <td><i class="bi bi-collection me-2" style="color: #20c997;"></i><strong>{{ group_name }}</strong></td>
+                <td><i class="bi bi-gear me-2"></i>{{ machine_name }}</td>
+                <td><span class="badge bg-info">{{ slot_count }} slots</span></td>
+                <td><strong>{{ (total_seconds / 3600)|round(2) }} hrs</strong></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const usageData = JSON.parse('{{ machine_usage_data|tojson }}');
+  const invData = JSON.parse('{{ inventory_consumption_data|tojson }}');
+
+  new Chart(document.getElementById('machineUsageChart'), {
+    type: 'bar',
+    data: {
+      labels: usageData.labels,
+      datasets: [{
+        label: 'Hours Used',
+        data: usageData.hours,
+        backgroundColor: 'rgba(54, 162, 235, 0.6)'
+      }]
+    }
+  });
+
+  new Chart(document.getElementById('inventoryChart'), {
+    type: 'pie',
+    data: {
+      labels: invData.labels,
+      datasets: [{
+        data: invData.values,
+        backgroundColor: ['red', 'green', 'blue', 'orange']
+      }]
+    }
+  });
+});
+</script>
+{% endblock %}
+
+
+
+

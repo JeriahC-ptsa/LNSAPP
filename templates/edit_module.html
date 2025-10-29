@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% block title %}Edit Module{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+          <h4 class="mb-0"><i class="bi bi-pencil-square me-2"></i>Edit Module</h4>
+        </div>
+        <div class="card-body">
+          <form method="POST" action="{{ url_for('edit_module', mod_id=module.id) }}">
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="module_name" class="form-label"><strong>Module Name</strong> <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="module_name" name="module_name" value="{{ module.name }}" required>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label for="module_code" class="form-label"><strong>Module Code</strong></label>
+                <input type="text" class="form-control" id="module_code" name="module_code" value="{{ module.code if module.code else '' }}" placeholder="e.g., 652201-000-01-00-PM-15">
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-4 mb-3">
+                <label for="module_category" class="form-label"><strong>Category</strong></label>
+                <select class="form-select" id="module_category" name="module_category">
+                  <option value="">-- Select Category --</option>
+                  <option value="FUNDAMENTALS" {% if module.category == 'FUNDAMENTALS' %}selected{% endif %}>FUNDAMENTALS</option>
+                  <option value="TOOLING U" {% if module.category == 'TOOLING U' %}selected{% endif %}>TOOLING U</option>
+                  <option value="THEORY MODULES" {% if module.category == 'THEORY MODULES' %}selected{% endif %}>THEORY MODULES</option>
+                  <option value="PRACTICAL MODULES" {% if module.category == 'PRACTICAL MODULES' %}selected{% endif %}>PRACTICAL MODULES</option>
+                </select>
+              </div>
+              <div class="col-md-4 mb-3">
+                <label for="module_status_type" class="form-label"><strong>Status Type</strong></label>
+                <select class="form-select" id="module_status_type" name="module_status_type">
+                  <option value="P/NYP" {% if module.status_type == 'P/NYP' %}selected{% endif %}>P/NYP (Pass/Not Yet Passed)</option>
+                  <option value="C/NYC" {% if module.status_type == 'C/NYC' %}selected{% endif %}>C/NYC (Complete/Not Yet Complete)</option>
+                </select>
+              </div>
+              <div class="col-md-4 mb-3">
+                <label for="module_credits" class="form-label"><strong>Credits</strong></label>
+                <input type="text" class="form-control" id="module_credits" name="module_credits" value="{{ module.credits if module.credits else '' }}" placeholder="e.g., 75%, 60%">
+              </div>
+            </div>
+
+            <div class="alert alert-info">
+              <i class="bi bi-info-circle me-2"></i>
+              <strong>Module ID:</strong> {{ module.id }} | 
+              <strong>Mini-Tasks:</strong> {{ module.mini_tasks|length }}
+            </div>
+
+            <div class="d-flex gap-2">
+              <button type="submit" class="btn btn-primary">
+                <i class="bi bi-save me-1"></i>Update Module
+              </button>
+              <a href="{{ url_for('modules_page') }}" class="btn btn-secondary">
+                <i class="bi bi-x-circle me-1"></i>Cancel
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

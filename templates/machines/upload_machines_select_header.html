@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% block title %}Select Header Row{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row mb-4">
+    <div class="col-12">
+      <h2><i class="bi bi-cloud-upload me-2"></i>Upload Machines - Select Header Row</h2>
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="{{ url_for('machines_list') }}">Machines</a></li>
+          <li class="breadcrumb-item"><a href="{{ url_for('machines_upload_form') }}">Upload</a></li>
+          <li class="breadcrumb-item active">Select Header</li>
+        </ol>
+      </nav>
+    </div>
+  </div>
+
+  <form method="POST" action="{{ url_for('upload_machines_analyze') }}">
+    <input type="hidden" name="filename" value="{{ filename }}">
+    
+    <div class="card shadow-sm mb-4">
+      <div class="card-header bg-primary text-white">
+        <h5 class="mb-0"><i class="bi bi-file-earmark-text me-2"></i>File Preview</h5>
+      </div>
+      <div class="card-body">
+        <div class="alert alert-info">
+          <i class="bi bi-info-circle me-2"></i>
+          <strong>File:</strong> {{ filename }} | 
+          <strong>Total Rows:</strong> {{ total_rows }} | 
+          <strong>Detected Header Row:</strong> Row {{ detected_header_row + 1 }}
+        </div>
+
+        <p><strong>Please select which row contains the column headers:</strong></p>
+        
+        <div class="table-responsive">
+          <table class="table table-bordered table-sm">
+            <thead>
+              <tr>
+                <th style="width: 80px;">Select</th>
+                <th style="width: 80px;">Row #</th>
+                <th>Content</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for idx, row in enumerate(preview_rows) %}
+              <tr>
+                <td class="text-center">
+                  <input type="radio" name="header_row" value="{{ idx }}" 
+                         {% if idx == detected_header_row %}checked{% endif %}
+                         id="row{{ idx }}">
+                </td>
+                <td class="text-center">
+                  <label for="row{{ idx }}" class="mb-0">{{ idx + 1 }}</label>
+                </td>
+                <td>
+                  <div class="d-flex flex-wrap gap-2">
+                    {% for cell in row %}
+                      <span class="badge bg-secondary">{{ cell if cell else '(empty)' }}</span>
+                    {% endfor %}
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+      <a href="{{ url_for('machines_upload_form') }}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Back
+      </a>
+      <button type="submit" class="btn btn-primary">
+        <i class="bi bi-arrow-right me-1"></i>Next: Preview Data
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

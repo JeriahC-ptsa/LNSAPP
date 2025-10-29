@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+{% block title %}Select Header Row{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row mb-4">
+    <div class="col-12">
+      <h2><i class="bi bi-file-earmark-spreadsheet me-2"></i>Select Header Row</h2>
+      <p class="text-muted">Which row contains the column headers?</p>
+    </div>
+  </div>
+
+  <form method="POST" action="{{ url_for('upload_students_analyze') }}">
+    <input type="hidden" name="filename" value="{{ filename }}">
+    <input type="hidden" name="intake_group_id" value="{{ intake_group_id }}">
+    
+    <!-- File Info -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="alert alert-info">
+          <i class="bi bi-info-circle me-2"></i>
+          <strong>File:</strong> {{ filename }} | 
+          <strong>Total Rows:</strong> {{ total_rows }} |
+          <strong>Intake Group:</strong> <span class="badge bg-primary">{{ intake_group_name }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Header Row Selection -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="card shadow-sm">
+          <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-table me-2"></i>Excel Preview (First 10 Rows)</h5>
+          </div>
+          <div class="card-body">
+            <div class="alert alert-warning">
+              <i class="bi bi-exclamation-triangle me-2"></i>
+              <strong>Select the row that contains your column headers.</strong> 
+              The system detected row {{ detected_header_row + 1 }}, but you can choose a different row if needed.
+            </div>
+            
+            <div class="table-responsive">
+              <table class="table table-sm table-bordered">
+                <thead>
+                  <tr>
+                    <th width="80">Select</th>
+                    <th width="80">Row #</th>
+                    <th>Data</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for row in preview_rows %}
+                  {% set idx = loop.index0 %}
+                  <tr {% if idx == detected_header_row %}class="table-success"{% endif %}>
+                    <td class="text-center">
+                      <input type="radio" name="header_row" value="{{ idx }}" 
+                             {% if idx == detected_header_row %}checked{% endif %}
+                             class="form-check-input">
+                    </td>
+                    <td class="text-center"><strong>{{ loop.index }}</strong></td>
+                    <td>
+                      <div class="d-flex gap-2 flex-wrap">
+                        {% for cell in row %}
+                          <span class="badge bg-secondary">
+                            {% if cell is not none and cell != '' %}
+                              {{ cell }}
+                            {% else %}
+                              <em>empty</em>
+                            {% endif %}
+                          </span>
+                        {% endfor %}
+                      </div>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+
+            <div class="alert alert-info mt-3 mb-0">
+              <i class="bi bi-lightbulb me-2"></i>
+              <strong>Tip:</strong> The header row typically contains column names like "Student Name", "Group", "Level", etc. 
+              Data rows will contain actual student information.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <button type="submit" class="btn btn-primary btn-lg">
+          <i class="bi bi-arrow-right me-2"></i>Next: Map Columns
+        </button>
+        <a href="{{ url_for('list_students') }}" class="btn btn-outline-secondary btn-lg">
+          <i class="bi bi-x-circle me-2"></i>Cancel
+        </a>
+      </div>
+    </div>
+  </form>
+</div>
+
+<style>
+.table tbody tr:hover {
+  background-color: #f8f9fa;
+  cursor: pointer;
+}
+.table tbody tr.table-success {
+  background-color: #d1e7dd !important;
+}
+</style>
+
+<script>
+// Allow clicking on row to select radio button
+document.querySelectorAll('.table tbody tr').forEach(row => {
+  row.addEventListener('click', function(e) {
+    if (e.target.type !== 'radio') {
+      const radio = this.querySelector('input[type="radio"]');
+      if (radio) radio.checked = true;
+    }
+  });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+{% block title %}Record Module Result - {{ student.student_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row mb-4">
+    <div class="col-12">
+      <h2><i class="bi bi-clipboard-check me-2"></i>Record Module Result</h2>
+      <p class="text-muted">
+        <strong>Student:</strong> {{ student.student_name }} | 
+        <strong>Module:</strong> {{ module.name }}
+      </p>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-lg-8">
+      <form method="POST">
+        <div class="card shadow-sm mb-4">
+          <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-check-circle me-2"></i>Module Assessment</h5>
+          </div>
+          <div class="card-body">
+            <div class="mb-4">
+              <label class="form-label"><strong>Result</strong></label>
+              <select class="form-select form-select-lg" name="result" required>
+                <option value="">-- Select Result --</option>
+                
+                {% if module.status_type == 'P/NYP' %}
+                  <!-- Pass/Not Yet Passed options -->
+                  <option value="Pass" {% if progress and progress.result == 'Pass' %}selected{% endif %}>
+                    ✓ Pass
+                  </option>
+                  <option value="Not Yet Passed" {% if progress and progress.result == 'Not Yet Passed' %}selected{% endif %}>
+                    ✗ Not Yet Passed
+                  </option>
+                  <option value="In Progress" {% if progress and progress.result == 'In Progress' %}selected{% endif %}>
+                    ⏳ In Progress
+                  </option>
+                  
+                {% elif module.status_type == 'C/NYC' %}
+                  <!-- Complete/Not Yet Complete options -->
+                  <option value="Complete" {% if progress and progress.result == 'Complete' %}selected{% endif %}>
+                    ✓ Complete
+                  </option>
+                  <option value="Not Yet Complete" {% if progress and progress.result == 'Not Yet Complete' %}selected{% endif %}>
+                    ✗ Not Yet Complete
+                  </option>
+                  <option value="In Progress" {% if progress and progress.result == 'In Progress' %}selected{% endif %}>
+                    ⏳ In Progress
+                  </option>
+                  
+                {% else %}
+                  <!-- Default options if status_type not set -->
+                  <option value="Pass" {% if progress and progress.result == 'Pass' %}selected{% endif %}>
+                    ✓ Pass
+                  </option>
+                  <option value="Fail" {% if progress and progress.result == 'Fail' %}selected{% endif %}>
+                    ✗ Fail
+                  </option>
+                  <option value="In Progress" {% if progress and progress.result == 'In Progress' %}selected{% endif %}>
+                    ⏳ In Progress
+                  </option>
+                {% endif %}
+              </select>
+              <small class="text-muted">Status Type: {{ module.status_type or 'P/NYP' }}</small>
+            </div>
+            
+            <div class="mb-3">
+              <label class="form-label"><strong>Completion Date (Optional)</strong></label>
+              <input type="datetime-local" class="form-control" name="completion_date" 
+                     value="{% if progress and progress.completion_date %}{{ progress.completion_date.strftime('%Y-%m-%dT%H:%M') }}{% endif %}">
+              <small class="text-muted">Leave blank to auto-set when marking as Pass/Complete</small>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label"><strong>Notes</strong></label>
+              <textarea class="form-control" name="notes" rows="4" 
+                        placeholder="Any additional notes about the student's performance...">{{ progress.notes if progress else '' }}</textarea>
+            </div>
+
+            {% if progress and progress.completion_date %}
+            <div class="alert alert-info">
+              <i class="bi bi-calendar-check me-2"></i>
+              <strong>Completion Date:</strong> {{ progress.completion_date.strftime('%Y-%m-%d %H:%M') }}
+            </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="d-flex gap-2 mb-4">
+          <button type="submit" class="btn btn-success btn-lg">
+            <i class="bi bi-check-circle me-2"></i>Save Module Result
+          </button>
+          <a href="{{ url_for('select_module', student_id=student.id) }}" class="btn btn-outline-secondary btn-lg">
+            <i class="bi bi-arrow-left me-2"></i>Back to Module Selection
+          </a>
+          <a href="{{ url_for('list_students') }}" class="btn btn-outline-secondary btn-lg">
+            <i class="bi bi-house me-2"></i>Back to Students List
+          </a>
+        </div>
+      </form>
+    </div>
+
+    <!-- Info Panel -->
+    <div class="col-lg-4">
+      <div class="card shadow-sm">
+        <div class="card-header bg-info text-white">
+          <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Module Information</h5>
+        </div>
+        <div class="card-body">
+          <h6>{{ module.name }}</h6>
+          
+          {% if module.mini_tasks %}
+          <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            <strong>Note:</strong> This module has {{ module.mini_tasks|length }} mini-tasks. 
+            Recording a module-level result is typically used when tracking the overall completion, 
+            separate from individual mini-task assessments.
+          </div>
+          {% else %}
+          <div class="alert alert-success">
+            <i class="bi bi-check-circle me-2"></i>
+            This module has no mini-tasks, so this is the primary assessment method.
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

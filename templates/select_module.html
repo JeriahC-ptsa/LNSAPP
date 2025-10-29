@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+  <h2>Record Attempt for {{ student.student_name }}</h2>
+  <ul class="list-group">{% for task in mini_tasks %}
+      <li class="list-group-item d-flex justify-content-between align-items-center">
+        {{ task.title }}
+        <a class="btn btn-primary btn-sm" href="/student_module_form/{{ task.id }}/{{ student.id }}">
+          Record
+        </a>
+      </li>{% endfor %}
+  </ul>
+</div>
+{% endblock %}

@@ -1,0 +1,659 @@
+{% extends 'base.html' %}
+{% block title %}Advanced Reports & Analytics{% endblock %}
+
+{% block content %}
+<style>
+.filter-section {
+  border-left: 3px solid #4A90E2;
+  padding-left: 15px;
+  margin-bottom: 20px;
+}
+.checkbox-group {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 10px;
+  background: #f8f9fa;
+}
+.stat-card {
+  transition: transform 0.2s;
+}
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+</style>
+
+<div class="container-fluid">
+  <div class="row mb-4">
+    <div class="col-12">
+      <h2><i class="bi bi-graph-up me-2"></i>Advanced Reports & Analytics</h2>
+      <p class="text-muted">Comprehensive data analysis with interactive visualizations and cross-table analytics</p>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Enhanced Configuration Panel -->
+    <div class="col-lg-3">
+      <div class="card shadow-sm mb-4 sticky-top" style="top: 20px;">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0"><i class="bi bi-sliders me-2"></i>Report Builder</h5>
+        </div>
+        <div class="card-body" style="max-height: 85vh; overflow-y: auto;">
+          
+          <!-- Report Category & Type -->
+          <div class="mb-4">
+            <label class="form-label fw-bold"><i class="bi bi-file-bar-graph me-1"></i>Report Category</label>
+            <select class="form-select mb-2" id="reportCategory" onchange="filterReportTypes()">
+              <option value="">All Categories</option>
+              <option value="Students">Students & Performance</option>
+              <option value="Progress">Progress & Completion</option>
+              <option value="Resources">Resources & Utilization</option>
+              <option value="Schedule">Schedule & Time</option>
+              <option value="Management">Management & Operations</option>
+              <option value="Advanced">Advanced Analytics</option>
+              <option value="Custom">Custom & Cross-Table</option>
+            </select>
+            
+            <label class="form-label fw-bold mt-2">Report Type</label>
+            <select class="form-select" id="reportType" onchange="updateFilters()">
+              <option value="">-- Select a report --</option>
+              {% for report in report_types %}
+                <option value="{{ report.id }}" data-category="{{ report.category }}">
+                  {{ report.name }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- ENHANCED FILTERS SECTION -->
+          <div id="filtersSection" style="display: none;">
+            
+            <!-- Students Filter -->
+            <div class="filter-section" id="studentFilter" style="display:none;">
+              <label class="form-label fw-bold"><i class="bi bi-people-fill me-1"></i>Students</label>
+              <div class="checkbox-group">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="selectAllStudents" onchange="toggleAllStudents()">
+                  <label class="form-check-label fw-bold" for="selectAllStudents">Select All</label>
+                </div>
+                <hr class="my-2">
+                <div id="studentCheckboxes"></div>
+              </div>
+            </div>
+
+            <!-- Groups Filter -->
+            <div class="filter-section" id="groupFilter" style="display:none;">
+              <label class="form-label fw-bold"><i class="bi bi-collection-fill me-1"></i>Groups</label>
+              <div class="checkbox-group">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="selectAllGroups" onchange="toggleAllGroups()" checked>
+                  <label class="form-check-label fw-bold" for="selectAllGroups">All Groups</label>
+                </div>
+                <hr class="my-2">
+                {% for group in groups %}
+                <div class="form-check">
+                  <input class="form-check-input group-checkbox" type="checkbox" value="{{ group.id }}" id="group{{ group.id }}" checked>
+                  <label class="form-check-label" for="group{{ group.id }}">{{ group.name }}</label>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+
+            <!-- Modules Filter -->
+            <div class="filter-section" id="moduleFilter" style="display:none;">
+              <label class="form-label fw-bold"><i class="bi bi-journal-bookmark-fill me-1"></i>Modules</label>
+              <div class="checkbox-group">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="selectAllModules" onchange="toggleAllModules()" checked>
+                  <label class="form-check-label fw-bold" for="selectAllModules">All Modules</label>
+                </div>
+                <hr class="my-2">
+                {% for module in modules %}
+                <div class="form-check">
+                  <input class="form-check-input module-checkbox" type="checkbox" value="{{ module.id }}" id="module{{ module.id }}" checked>
+                  <label class="form-check-label" for="module{{ module.id }}">{{ module.name }}</label>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+
+            <!-- Machines Filter -->
+            <div class="filter-section" id="machineFilter" style="display:none;">
+              <label class="form-label fw-bold"><i class="bi bi-gear-fill me-1"></i>Machines</label>
+              <div class="checkbox-group">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="selectAllMachines" onchange="toggleAllMachines()" checked>
+                  <label class="form-check-label fw-bold" for="selectAllMachines">All Machines</label>
+                </div>
+                <hr class="my-2">
+                {% for machine in machines %}
+                <div class="form-check">
+                  <input class="form-check-input machine-checkbox" type="checkbox" value="{{ machine.id }}" id="machine{{ machine.id }}" checked>
+                  <label class="form-check-label" for="machine{{ machine.id }}">{{ machine.machine_name }}</label>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+
+            <!-- Status Filter -->
+            <div class="filter-section" id="statusFilter" style="display:none;">
+              <label class="form-label fw-bold"><i class="bi bi-check2-circle me-1"></i>Progress Status</label>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="filterPass" value="Pass" checked>
+                <label class="form-check-label text-success" for="filterPass">
+                  <i class="bi bi-check-circle-fill me-1"></i>Passed
+                </label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="filterFail" value="Fail" checked>
+                <label class="form-check-label text-danger" for="filterFail">
+                  <i class="bi bi-x-circle-fill me-1"></i>Failed/Not Yet Passed
+                </label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="filterInProgress" value="InProgress" checked>
+                <label class="form-check-label text-warning" for="filterInProgress">
+                  <i class="bi bi-hourglass-split me-1"></i>In Progress
+                </label>
+              </div>
+            </div>
+
+            <!-- Demographics Filter -->
+            <div class="filter-section" id="demographicsFilter" style="display:none;">
+              <label class="form-label fw-bold"><i class="bi bi-person-vcard me-1"></i>Demographics</label>
+              
+              <div class="mb-3">
+                <label class="form-label small">Gender</label>
+                <select class="form-select form-select-sm" id="filterGender">
+                  <option value="">All Genders</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label small">Population Group</label>
+                <select class="form-select form-select-sm" id="filterRace">
+                  <option value="">All Groups</option>
+                  <option value="African">African</option>
+                  <option value="Coloured">Coloured</option>
+                  <option value="Indian">Indian</option>
+                  <option value="White">White</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label small">Age Range</label>
+                <select class="form-select form-select-sm" id="filterAgeRange">
+                  <option value="">All Ages</option>
+                  <option value="18-25">18-25</option>
+                  <option value="26-35">26-35</option>
+                  <option value="36-45">36-45</option>
+                  <option value="46+">46+</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Date Range Filter -->
+            <div class="filter-section" id="dateRangeFilter" style="display:none;">
+              <label class="form-label fw-bold"><i class="bi bi-calendar-range me-1"></i>Date Range</label>
+              <div class="mb-2">
+                <label class="form-label small">From</label>
+                <input type="date" class="form-control form-control-sm" id="filterDateFrom">
+              </div>
+              <div class="mb-2">
+                <label class="form-label small">To</label>
+                <input type="date" class="form-control form-control-sm" id="filterDateTo">
+              </div>
+            </div>
+
+            <!-- Cross-Table Analysis -->
+            <div class="filter-section" id="crossTableFilter" style="display:none;">
+              <label class="form-label fw-bold"><i class="bi bi-table me-1"></i>Cross-Table Analysis</label>
+              <div class="mb-2">
+                <label class="form-label small">Row Variable</label>
+                <select class="form-select form-select-sm" id="crossTableRow">
+                  <option value="group">Group</option>
+                  <option value="gender">Gender</option>
+                  <option value="race">Population Group</option>
+                  <option value="module">Module</option>
+                </select>
+              </div>
+              <div class="mb-2">
+                <label class="form-label small">Column Variable</label>
+                <select class="form-select form-select-sm" id="crossTableCol">
+                  <option value="status">Pass/Fail Status</option>
+                  <option value="module">Module</option>
+                  <option value="gender">Gender</option>
+                  <option value="race">Population Group</option>
+                </select>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="crossTablePercentages" checked>
+                <label class="form-check-label small" for="crossTablePercentages">
+                  Show Percentages
+                </label>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Chart Type Selection -->
+          <div class="mb-4" id="chartTypeSection" style="display:none;">
+            <label class="form-label fw-bold"><i class="bi bi-bar-chart me-1"></i>Visualization</label>
+            <select class="form-select" id="chartType">
+              <option value="bar">Bar Chart</option>
+              <option value="pie">Pie Chart</option>
+              <option value="line">Line Chart</option>
+              <option value="heatmap">Heatmap</option>
+              <option value="scatter">Scatter Plot</option>
+            </select>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="d-grid gap-2">
+            <button class="btn btn-primary btn-lg" onclick="generateReport()" id="generateBtn" disabled>
+              <i class="bi bi-play-circle me-2"></i>Generate Report
+            </button>
+            <button class="btn btn-success" onclick="exportToExcel()" id="exportBtn" style="display:none;">
+              <i class="bi bi-file-earmark-excel me-2"></i>Export to Excel
+            </button>
+            <button class="btn btn-outline-secondary" onclick="clearReport()">
+              <i class="bi bi-arrow-clockwise me-2"></i>Reset
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Report Display Area -->
+    <div class="col-lg-9">
+      <!-- Quick Stats -->
+      <div class="row mb-4" id="quickStatsRow" style="display:none;">
+        <div class="col-md-3">
+          <div class="card stat-card bg-primary text-white">
+            <div class="card-body text-center">
+              <h2 class="mb-0" id="statValue1">-</h2>
+              <small id="statLabel1">Metric 1</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card stat-card bg-success text-white">
+            <div class="card-body text-center">
+              <h2 class="mb-0" id="statValue2">-</h2>
+              <small id="statLabel2">Metric 2</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card stat-card bg-warning text-white">
+            <div class="card-body text-center">
+              <h2 class="mb-0" id="statValue3">-</h2>
+              <small id="statLabel3">Metric 3</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card stat-card bg-info text-white">
+            <div class="card-body text-center">
+              <h2 class="mb-0" id="statValue4">-</h2>
+              <small id="statLabel4">Metric 4</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Report Card -->
+      <div class="card shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0"><i class="bi bi-file-text me-2"></i><span id="reportTitle">Report Results</span></h5>
+          <div class="btn-group" role="group" id="reportActions" style="display:none;">
+            <button class="btn btn-sm btn-outline-primary" onclick="printReport()" title="Print Report">
+              <i class="bi bi-printer"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-success" onclick="exportToExcel()" title="Export Data">
+              <i class="bi bi-download"></i>
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div id="reportContent">
+            <div class="text-center text-muted py-5">
+              <i class="bi bi-file-earmark-bar-graph" style="font-size: 4rem; opacity: 0.3;"></i>
+              <h4 class="mt-3">No Report Generated</h4>
+              <p>Select a report type and configure filters, then click "Generate Report"</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<script>
+// Report configuration
+const reportFilters = {
+  'student_performance': ['groupFilter', 'moduleFilter', 'statusFilter', 'demographicsFilter'],
+  'student_progress': ['groupFilter', 'moduleFilter', 'statusFilter'],
+  'group_comparison': ['moduleFilter', 'statusFilter', 'demographicsFilter'],
+  'demographic_analysis': ['groupFilter', 'demographicsFilter'],
+  'completion_rates': ['moduleFilter', 'groupFilter', 'statusFilter'],
+  'attempt_analysis': ['groupFilter', 'moduleFilter', 'statusFilter'],
+  'contingency_table': ['groupFilter', 'moduleFilter', 'crossTableFilter'],
+  'cross_tabulation': ['groupFilter', 'moduleFilter', 'crossTableFilter'],
+  'inventory_usage': ['dateRangeFilter'],
+  'inventory_stock': [],
+  'machine_utilization': ['machineFilter', 'dateRangeFilter'],
+  'schedule_analysis': ['machineFilter', 'groupFilter', 'dateRangeFilter'],
+  'lecturer_workload': [],
+  'custom_field_analysis': ['demographicsFilter']
+};
+
+let currentReportData = null;
+
+// Filter report types by category
+function filterReportTypes() {
+  const category = document.getElementById('reportCategory').value;
+  const reportTypeSelect = document.getElementById('reportType');
+  const options = reportTypeSelect.getElementsByTagName('option');
+  
+  for (let i = 1; i < options.length; i++) {
+    const option = options[i];
+    if (!category || option.dataset.category === category) {
+      option.style.display = 'block';
+    } else {
+      option.style.display = 'none';
+    }
+  }
+  
+  reportTypeSelect.value = '';
+  updateFilters();
+}
+
+// Update filters based on report type
+function updateFilters() {
+  const reportType = document.getElementById('reportType').value;
+  const filtersSection = document.getElementById('filtersSection');
+  const chartTypeSection = document.getElementById('chartTypeSection');
+  const generateBtn = document.getElementById('generateBtn');
+  
+  // Hide all filters
+  const allFilters = ['groupFilter', 'moduleFilter', 'studentFilter', 'machineFilter', 
+                      'statusFilter', 'demographicsFilter', 'dateRangeFilter', 'crossTableFilter'];
+  allFilters.forEach(filterId => {
+    const elem = document.getElementById(filterId);
+    if (elem) elem.style.display = 'none';
+  });
+  
+  if (reportType) {
+    // Show applicable filters
+    if (reportFilters[reportType]) {
+      reportFilters[reportType].forEach(filterId => {
+        const elem = document.getElementById(filterId);
+        if (elem) elem.style.display = 'block';
+      });
+      filtersSection.style.display = reportFilters[reportType].length > 0 ? 'block' : 'none';
+    } else {
+      filtersSection.style.display = 'none';
+    }
+    
+    chartTypeSection.style.display = 'block';
+    generateBtn.disabled = false;
+  } else {
+    filtersSection.style.display = 'none';
+    chartTypeSection.style.display = 'none';
+    generateBtn.disabled = true;
+  }
+}
+
+// Toggle functions for checkboxes
+function toggleAllGroups() {
+  const selectAll = document.getElementById('selectAllGroups').checked;
+  document.querySelectorAll('.group-checkbox').forEach(cb => cb.checked = selectAll);
+}
+
+function toggleAllModules() {
+  const selectAll = document.getElementById('selectAllModules').checked;
+  document.querySelectorAll('.module-checkbox').forEach(cb => cb.checked = selectAll);
+}
+
+function toggleAllMachines() {
+  const selectAll = document.getElementById('selectAllMachines').checked;
+  document.querySelectorAll('.machine-checkbox').forEach(cb => cb.checked = selectAll);
+}
+
+// Generate report
+function generateReport() {
+  const reportType = document.getElementById('reportType').value;
+  
+  if (!reportType) {
+    alert('Please select a report type');
+    return;
+  }
+  
+  // Collect selected groups
+  const selectedGroups = Array.from(document.querySelectorAll('.group-checkbox:checked')).map(cb => cb.value);
+  
+  // Collect selected modules
+  const selectedModules = Array.from(document.querySelectorAll('.module-checkbox:checked')).map(cb => cb.value);
+  
+  // Collect selected machines
+  const selectedMachines = Array.from(document.querySelectorAll('.machine-checkbox:checked')).map(cb => cb.value);
+  
+  // Collect status filters
+  const statusFilters = [];
+  if (document.getElementById('filterPass')?.checked) statusFilters.push('Pass');
+  if (document.getElementById('filterFail')?.checked) statusFilters.push('Fail');
+  if (document.getElementById('filterInProgress')?.checked) statusFilters.push('InProgress');
+  
+  const filters = {
+    group_ids: selectedGroups.length > 0 ? selectedGroups : null,
+    module_ids: selectedModules.length > 0 ? selectedModules : null,
+    machine_ids: selectedMachines.length > 0 ? selectedMachines : null,
+    status_filters: statusFilters.length > 0 ? statusFilters : null,
+    gender: document.getElementById('filterGender')?.value || null,
+    race: document.getElementById('filterRace')?.value || null,
+    age_range: document.getElementById('filterAgeRange')?.value || null,
+    date_from: document.getElementById('filterDateFrom')?.value || null,
+    date_to: document.getElementById('filterDateTo')?.value || null,
+    cross_table_row: document.getElementById('crossTableRow')?.value || null,
+    cross_table_col: document.getElementById('crossTableCol')?.value || null,
+    cross_table_percentages: document.getElementById('crossTablePercentages')?.checked || false
+  };
+  
+  const chartType = document.getElementById('chartType').value;
+  
+  // Show loading
+  document.getElementById('reportContent').innerHTML = `
+    <div class="text-center py-5">
+      <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+      <p class="mt-3 fw-bold">Generating report...</p>
+    </div>
+  `;
+  
+  fetch('/reports/generate', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      report_type: reportType,
+      filters: filters,
+      chart_type: chartType
+    })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      displayReport(data);
+    } else {
+      document.getElementById('reportContent').innerHTML = `
+        <div class="alert alert-danger">
+          <i class="bi bi-exclamation-triangle me-2"></i>
+          <strong>Error:</strong> ${data.error || 'Unknown error'}
+          ${data.traceback ? '<pre class="mt-2 small">' + data.traceback + '</pre>' : ''}
+        </div>
+      `;
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    document.getElementById('reportContent').innerHTML = `
+      <div class="alert alert-danger">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        Network error. Please check your connection and try again.
+      </div>
+    `;
+  });
+}
+
+function displayReport(data) {
+  let html = '';
+  
+  // Display stats in top cards
+  if (data.stats) {
+    const statsKeys = Object.keys(data.stats);
+    const quickStatsRow = document.getElementById('quickStatsRow');
+    quickStatsRow.style.display = 'flex';
+    
+    for (let i = 0; i < 4 && i < statsKeys.length; i++) {
+      const key = statsKeys[i];
+      const value = data.stats[key];
+      document.getElementById(`statValue${i+1}`).textContent = typeof value === 'number' ? value.toFixed(2) : value;
+      document.getElementById(`statLabel${i+1}`).textContent = key.replace(/_/g, ' ').toUpperCase();
+    }
+  }
+  
+  // Display chart
+  if (data.chart) {
+    html += '<div class="mb-4"><div id="chartDiv"></div></div>';
+  }
+  
+  // Display table
+  if (data.table) {
+    html += `
+      <div class="mb-4">
+        <h5 class="mb-3"><i class="bi bi-table me-2"></i>Detailed Data</h5>
+        <div class="table-responsive">
+          ${data.table}
+        </div>
+      </div>
+    `;
+  }
+  
+  document.getElementById('reportContent').innerHTML = html || '<p class="text-muted">No data available for this report</p>';
+  
+  // Render Plotly chart if present
+  if (data.chart) {
+    setTimeout(() => {
+      const chartDiv = document.getElementById('chartDiv');
+      if (chartDiv) {
+        // Create a temporary container to parse the HTML
+        const temp = document.createElement('div');
+        temp.innerHTML = data.chart;
+        
+        // Clear the chart div
+        chartDiv.innerHTML = '';
+        
+        // Append all nodes from the chart HTML
+        while (temp.firstChild) {
+          chartDiv.appendChild(temp.firstChild);
+        }
+        
+        // Execute any script tags
+        const scripts = chartDiv.getElementsByTagName('script');
+        for (let i = 0; i < scripts.length; i++) {
+          const script = scripts[i];
+          const newScript = document.createElement('script');
+          newScript.textContent = script.textContent;
+          if (script.src) {
+            newScript.src = script.src;
+          }
+          document.body.appendChild(newScript);
+        }
+      }
+    }, 100);
+  }
+  
+  // Store data and show export button
+  currentReportData = data;
+  document.getElementById('exportBtn').style.display = 'block';
+  document.getElementById('reportActions').style.display = 'flex';
+  
+  // Update report title
+  const reportType = document.getElementById('reportType');
+  const selectedText = reportType.options[reportType.selectedIndex].text;
+  document.getElementById('reportTitle').textContent = selectedText;
+}
+
+function clearReport() {
+  document.getElementById('reportType').value = '';
+  document.getElementById('reportCategory').value = '';
+  filterReportTypes();
+  currentReportData = null;
+  document.getElementById('exportBtn').style.display = 'none';
+  document.getElementById('reportActions').style.display = 'none';
+  document.getElementById('quickStatsRow').style.display = 'none';
+  
+  document.getElementById('reportContent').innerHTML = `
+    <div class="text-center text-muted py-5">
+      <i class="bi bi-file-earmark-bar-graph" style="font-size: 4rem; opacity: 0.3;"></i>
+      <h4 class="mt-3">No Report Generated</h4>
+      <p>Select a report type and configure filters, then click "Generate Report"</p>
+    </div>
+  `;
+}
+
+function exportToExcel() {
+  if (!currentReportData) {
+    alert('Please generate a report first');
+    return;
+  }
+  
+  const reportType = document.getElementById('reportType').value;
+  const reportTitle = document.getElementById('reportType').options[document.getElementById('reportType').selectedIndex].text;
+  
+  // Send POST request with report data
+  fetch('/reports/export', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      report_type: reportType,
+      report_title: reportTitle,
+      table_html: currentReportData.table,
+      stats: currentReportData.stats
+    })
+  })
+  .then(response => response.blob())
+  .then(blob => {
+    // Create download link
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${reportType}_${new Date().toISOString().slice(0,10)}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    a.remove();
+  })
+  .catch(error => {
+    console.error('Export error:', error);
+    alert('Error exporting report. Please try again.');
+  });
+}
+
+function printReport() {
+  window.print();
+}
+</script>
+{% endblock %}
