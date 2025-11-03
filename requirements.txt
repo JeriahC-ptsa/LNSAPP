@@ -3,7 +3,7 @@ Flask-SQLAlchemy==3.0.5
 SQLAlchemy==2.0.9
 python-dotenv==1.0.0
 flask-migrate==4.0.4
-pandas==2.0.3
+pandas==2.2.3
 bootstrap-flask==2.2.0
 Flask-Login==0.6.2
 Werkzeug==2.3.6
