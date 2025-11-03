@@ -91,7 +91,23 @@
           </div>
           <div class="mb-3">
             <label for="password" class="form-label">Password</label>
-            <input type="password" class="form-control" name="password" required>
+            <div class="input-group">
+              <input type="password" class="form-control" name="password" id="newPassword" required minlength="6">
+              <button class="btn btn-outline-secondary" type="button" id="toggleNewPassword">
+                <i class="bi bi-eye" id="toggleNewIcon"></i>
+              </button>
+            </div>
+            <small class="text-muted">Minimum 6 characters</small>
+          </div>
+          <div class="mb-3">
+            <label for="confirm_password" class="form-label">Confirm Password</label>
+            <div class="input-group">
+              <input type="password" class="form-control" name="confirm_password" id="confirmPassword" required minlength="6">
+              <button class="btn btn-outline-secondary" type="button" id="toggleConfirmPassword">
+                <i class="bi bi-eye" id="toggleConfirmIcon"></i>
+              </button>
+            </div>
+            <div id="passwordMatchMessage" class="mt-1"></div>
           </div>
           <div class="mb-3">
             <label class="form-label">Roles</label>
@@ -159,5 +175,73 @@ function editUserRoles(userId, username) {
   // Show modal
   new bootstrap.Modal(document.getElementById('editRolesModal')).show();
 }
+
+// Password visibility toggles
+document.getElementById('toggleNewPassword').addEventListener('click', function() {
+  const passwordInput = document.getElementById('newPassword');
+  const toggleIcon = document.getElementById('toggleNewIcon');
+  
+  if (passwordInput.type === 'password') {
+    passwordInput.type = 'text';
+    toggleIcon.classList.remove('bi-eye');
+    toggleIcon.classList.add('bi-eye-slash');
+  } else {
+    passwordInput.type = 'password';
+    toggleIcon.classList.remove('bi-eye-slash');
+    toggleIcon.classList.add('bi-eye');
+  }
+});
+
+document.getElementById('toggleConfirmPassword').addEventListener('click', function() {
+  const passwordInput = document.getElementById('confirmPassword');
+  const toggleIcon = document.getElementById('toggleConfirmIcon');
+  
+  if (passwordInput.type === 'password') {
+    passwordInput.type = 'text';
+    toggleIcon.classList.remove('bi-eye');
+    toggleIcon.classList.add('bi-eye-slash');
+  } else {
+    passwordInput.type = 'password';
+    toggleIcon.classList.remove('bi-eye-slash');
+    toggleIcon.classList.add('bi-eye');
+  }
+});
+
+// Password match validation
+function checkPasswordMatch() {
+  const password = document.getElementById('newPassword').value;
+  const confirmPassword = document.getElementById('confirmPassword').value;
+  const messageDiv = document.getElementById('passwordMatchMessage');
+  const submitBtn = document.querySelector('#addUserModal button[type="submit"]');
+  
+  if (confirmPassword === '') {
+    messageDiv.innerHTML = '';
+    submitBtn.disabled = false;
+    return;
+  }
+  
+  if (password === confirmPassword) {
+    messageDiv.innerHTML = '<small class="text-success"><i class="bi bi-check-circle-fill me-1"></i>Passwords match</small>';
+    submitBtn.disabled = false;
+  } else {
+    messageDiv.innerHTML = '<small class="text-danger"><i class="bi bi-x-circle-fill me-1"></i>Passwords do not match</small>';
+    submitBtn.disabled = true;
+  }
+}
+
+document.getElementById('newPassword').addEventListener('input', checkPasswordMatch);
+document.getElementById('confirmPassword').addEventListener('input', checkPasswordMatch);
+
+// Form submission validation
+document.querySelector('#addUserModal form').addEventListener('submit', function(e) {
+  const password = document.getElementById('newPassword').value;
+  const confirmPassword = document.getElementById('confirmPassword').value;
+  
+  if (password !== confirmPassword) {
+    e.preventDefault();
+    alert('Passwords do not match!');
+    return false;
+  }
+});
 </script>
 {% endblock %}

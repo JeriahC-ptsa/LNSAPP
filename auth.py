@@ -68,7 +68,18 @@ def add_user():
     username = request.form.get('username')
     email = request.form.get('email')
     password = request.form.get('password')
+    confirm_password = request.form.get('confirm_password')
     role_ids = request.form.getlist('roles')
+    
+    # Validate password confirmation
+    if password != confirm_password:
+        flash('Passwords do not match!', 'danger')
+        return redirect(url_for('auth.manage_users'))
+    
+    # Validate password length
+    if len(password) < 6:
+        flash('Password must be at least 6 characters long.', 'danger')
+        return redirect(url_for('auth.manage_users'))
     
     # Check if user exists
     if User.query.filter_by(username=username).first():
