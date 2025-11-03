@@ -41,6 +41,10 @@ app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 db.init_app(app)
 migrate = Migrate(app, db)
 
+# Bootstrap: Ensure database tables and super admin exist on startup
+from bootstrap import ensure_super_admin
+ensure_super_admin()
+
 # Initialize Flask-Login
 login_manager = LoginManager()
 login_manager.init_app(app)
